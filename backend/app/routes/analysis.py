@@ -269,20 +269,24 @@ async def simulate_repo_impact(
         github_token=payload.github_token
     )
 
+    if "start_node" not in blast_result:
+        blast_result["start_node"] = payload.target_component
+
     simulation_id = str(uuid.uuid4())
-    risk_score = blast_result["risk_score"] + (len(cross_file_impacts) * 0.5)
+    risk_score = blast_result.get("risk_score", 10.0) + (len(cross_file_impacts) * 0.5)
     risk_level = determine_risk_level(risk_score)
     sim_name = f"Repo-Scan-{payload.target_component}"
 
     full_result_payload = {
         "target_component": payload.target_component,
         "schema_modifications": schema_mods,
-        "impacted_nodes": blast_result["impacted_nodes"],
-        "impacted_count": blast_result["impacted_count"],
+        "impacted_nodes": blast_result.get("impacted_nodes", []),
+        "impacted_count": blast_result.get("impacted_count", 0),
         "risk_score": risk_score,
         "risk_level": risk_level,
-        "evidence_paths": blast_result["paths"],
-        "node_details": blast_result["node_details"],
+        "evidence_paths": blast_result.get("paths", {}),
+        "node_details": blast_result.get("node_details", {}),
+        "blast_radius_analysis": blast_result,
         "cross_file_impacts": cross_file_impacts
     }
 
@@ -310,10 +314,11 @@ async def simulate_repo_impact(
         risk_score=risk_score,
         risk_level=risk_level,
         schema_modifications=schema_mods,
-        impacted_nodes=blast_result["impacted_nodes"],
-        impacted_count=blast_result["impacted_count"],
-        evidence_paths=blast_result["paths"],
-        node_details=blast_result["node_details"],
+        impacted_nodes=blast_result.get("impacted_nodes", []),
+        impacted_count=blast_result.get("impacted_count", 0),
+        evidence_paths=blast_result.get("paths", {}),
+        node_details=blast_result.get("node_details", {}),
+        blast_radius_analysis=blast_result,
         cross_file_impacts=cross_file_impacts
     )
 

@@ -96,7 +96,9 @@ export interface SimulationResponse {
   risk_score?: number;
   risk_level?: string;
   schema_modifications: Record<string, unknown>;
-  blast_radius_analysis: BlastRadiusReport;
+  blast_radius_analysis?: BlastRadiusReport;
+  impacted_nodes?: string[];
+  impacted_count?: number;
   cross_file_impacts?: CrossFileImpact[];
 }
 

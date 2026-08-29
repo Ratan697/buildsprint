@@ -68,13 +68,11 @@ const CustomNodeComponent: React.FC<NodeProps> = ({ data, selected }) => {
 
   const config = getTypeStyle();
 
-  let containerBorder = 'border-gray-200 bg-white text-slate-900';
+  let containerBorder = 'border-slate-200 bg-white text-slate-900 shadow-xs';
   if (isSource) {
-    containerBorder = 'border-red-500 bg-red-50/70 text-slate-900 ring-2 ring-red-500/30';
-  } else if (isHighRisk) {
-    containerBorder = 'border-red-400 bg-red-50/40 text-slate-900';
+    containerBorder = '!border-rose-500 !bg-rose-50 !text-slate-950 shadow-md ring-2 ring-rose-400/40 font-semibold';
   } else if (isImpacted) {
-    containerBorder = 'border-amber-400 bg-amber-50/40 text-slate-900';
+    containerBorder = '!border-amber-500 !bg-amber-50/90 !text-slate-950 shadow-md ring-2 ring-amber-400/40 font-semibold';
   }
 
   return (
@@ -122,8 +120,9 @@ export default function DependencyGraph() {
     const rawEdges = graphData?.edges || [];
     const blastReport = analysisResult?.blast_radius_analysis;
 
-    const startNode = blastReport?.start_node;
-    const impactedNodes = new Set(blastReport?.impacted_nodes || []);
+    const startNode = blastReport?.start_node || analysisResult?.target_component;
+    const rawImpacted = blastReport?.impacted_nodes || analysisResult?.impacted_nodes || [];
+    const impactedNodes = new Set(rawImpacted);
 
     const layoutCoords: Record<string, { x: number; y: number }> = {
       'db-users': { x: 250, y: 320 },
@@ -167,7 +166,7 @@ export default function DependencyGraph() {
         animated: isEdgeImpacted,
         style: {
           stroke: isEdgeImpacted ? '#f59e0b' : '#cbd5e1',
-          strokeWidth: isEdgeImpacted ? 2 : 1.5,
+          strokeWidth: isEdgeImpacted ? 2.5 : 1.5,
         },
       };
     });
