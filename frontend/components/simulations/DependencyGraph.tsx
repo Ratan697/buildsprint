@@ -81,8 +81,8 @@ const CustomNodeComponent: React.FC<NodeProps> = ({ data, selected }) => {
     <div
       tabIndex={0}
       aria-label={`Node ${nodeData.label}`}
-      className={`px-3.5 py-2.5 rounded-lg border shadow-2xs min-w-[170px] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-slate-900 ${containerBorder} ${
-        selected ? 'ring-2 ring-slate-900 ring-offset-1' : ''
+      className={`px-3.5 py-2.5 rounded-lg border shadow-2xs min-w-[170px] transition-all duration-200 cursor-pointer ${containerBorder} ${
+        selected ? 'border-slate-800 shadow-md scale-102' : ''
       }`}
     >
       <Handle type="target" position={Position.Top} className="w-2 h-2 !bg-gray-400 border border-white" />
@@ -175,8 +175,13 @@ export default function DependencyGraph() {
     return { initialFlowNodes: flowNodes, initialFlowEdges: flowEdges };
   }, [graphData, analysisResult]);
 
-  const [nodes, , onNodesChange] = useNodesState(initialFlowNodes);
-  const [edges, , onEdgesChange] = useEdgesState(initialFlowEdges);
+  const [nodes, setNodes, onNodesChange] = useNodesState(initialFlowNodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(initialFlowEdges);
+
+  React.useEffect(() => {
+    setNodes(initialFlowNodes);
+    setEdges(initialFlowEdges);
+  }, [initialFlowNodes, initialFlowEdges, setNodes, setEdges]);
 
   const nodeTypes = useMemo(() => ({ customNode: CustomNodeComponent }), []);
 
