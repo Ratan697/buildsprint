@@ -78,6 +78,11 @@ export interface BlastRadiusReport {
 
 export interface SimulationResponse {
   status: string;
+  simulation_id?: string;
+  name?: string;
+  target_component?: string;
+  risk_score?: number;
+  risk_level?: string;
   schema_modifications: Record<string, unknown>;
   blast_radius_analysis: BlastRadiusReport;
 }

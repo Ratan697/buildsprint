@@ -79,7 +79,9 @@ export default function SimulationsPage() {
     const res = await simulateSchemaImpact(payload);
 
     if (res.data) {
-      setSuccessMsg(`Simulation "${res.data.name || simName}" completed successfully! Risk Score: ${res.data.risk_score}`);
+      const score = res.data.risk_score ?? res.data.blast_radius_analysis?.risk_score ?? 'N/A';
+      const title = res.data.name || simName;
+      setSuccessMsg(`Simulation "${title}" completed successfully! Risk Score: ${score}`);
       await loadHistory();
     } else {
       setErrorMsg(res.error || 'Failed to execute simulation run.');
