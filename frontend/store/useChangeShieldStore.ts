@@ -5,7 +5,7 @@ import {
   SimulationResponse,
   ActiveTab,
 } from '@/lib/types';
-import { simulateSchemaImpact } from '@/lib/api';
+import { simulateSchemaImpact, simulateRepoImpact } from '@/lib/api';
 
 export interface SystemState {
   currentProject: string;
@@ -73,7 +73,20 @@ export const useChangeShieldStore = create<SystemState>((set) => ({
       selectedNode: null,
       simulationInput: payload,
     });
-    const res = await simulateSchemaImpact(payload);
+
+    let res;
+    if (payload.repo_url && payload.repo_url.trim()) {
+      res = await simulateRepoImpact({
+        repo_url: payload.repo_url.trim(),
+        branch: payload.branch || 'main',
+        github_token: payload.github_token,
+        target_component: payload.target_component,
+        v1_sql: payload.v1_sql,
+        v2_sql: payload.v2_sql,
+      });
+    } else {
+      res = await simulateSchemaImpact(payload);
+    }
 
     if (res.error) {
       set({ isLoading: false, error: res.error });

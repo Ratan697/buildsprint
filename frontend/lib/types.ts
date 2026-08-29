@@ -57,6 +57,9 @@ export interface SimulationRequestPayload {
   target_component: string;
   v1_sql?: string;
   v2_sql?: string;
+  repo_url?: string;
+  branch?: string;
+  github_token?: string;
   graph_data?: BackendGraphData;
 }
 
@@ -76,6 +79,15 @@ export interface BlastRadiusReport {
   node_details: Record<string, NodeImpactDetail>;
 }
 
+export interface CrossFileImpact {
+  file_path: string;
+  line_number: number;
+  code_snippet: string;
+  impact_type: string;
+  severity: 'CRITICAL' | 'HIGH' | 'MEDIUM' | string;
+  suggested_fix: string;
+}
+
 export interface SimulationResponse {
   status: string;
   simulation_id?: string;
@@ -85,6 +97,7 @@ export interface SimulationResponse {
   risk_level?: string;
   schema_modifications: Record<string, unknown>;
   blast_radius_analysis: BlastRadiusReport;
+  cross_file_impacts?: CrossFileImpact[];
 }
 
 export type ActiveTab = 'overview' | 'evidence' | 'remediation';

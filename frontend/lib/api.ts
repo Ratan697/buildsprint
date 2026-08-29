@@ -98,6 +98,49 @@ export interface SimulateChangePayload {
 export type SimulateChangeResponse = SimulationResponse;
 
 /**
+ * Runs a full repository codebase impact simulation via POST /analysis/repo-simulate
+ */
+export async function simulateRepoImpact(payload: {
+  repo_url: string;
+  branch?: string;
+  github_token?: string;
+  target_component: string;
+  v1_sql?: string;
+  v2_sql?: string;
+}): Promise<ApiResponse<SimulationResponse>> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/analysis/repo-simulate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      let errorMsg = `Server error ${res.status}: ${res.statusText}`;
+      try {
+        const errorJson = await res.json();
+        if (errorJson.detail) {
+          errorMsg = typeof errorJson.detail === 'string'
+            ? errorJson.detail
+            : JSON.stringify(errorJson.detail);
+        }
+      } catch {
+        // Fallback
+      }
+      return { data: null, error: errorMsg, status: res.status };
+    }
+
+    const data: SimulationResponse = await res.json();
+    return { data, error: null, status: res.status };
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : 'Network error or backend unreachable';
+    return { data: null, error: errorMsg, status: 500 };
+  }
+}
+
+/**
  * Runs a schema & blast radius simulation via POST /analysis/simulate
  */
 export async function simulateSchemaImpact(

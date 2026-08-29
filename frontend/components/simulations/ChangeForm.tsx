@@ -13,6 +13,7 @@ import {
   Check,
   X,
   AlertTriangle,
+  Code2,
 } from 'lucide-react';
 
 interface ChangeFormProps {
@@ -25,6 +26,7 @@ export default function ChangeForm({ onReset, isSimulated }: ChangeFormProps) {
 
   const [category, setCategory] = useState<ChangeTargetCategory>('Database');
   const [targetComponent, setTargetComponent] = useState('db-users');
+  const [repoUrl, setRepoUrl] = useState('https://github.com/Ratan697/buildsprint');
   const [v1Sql, setV1Sql] = useState('CREATE TABLE users (\n  id INT PRIMARY KEY,\n  email VARCHAR(255),\n  status VARCHAR(50)\n);');
   const [v2Sql, setV2Sql] = useState('CREATE TABLE users (\n  id UUID PRIMARY KEY,\n  email VARCHAR(255),\n  phone VARCHAR(20)\n);');
   const [description, setDescription] = useState(
@@ -33,9 +35,6 @@ export default function ChangeForm({ onReset, isSimulated }: ChangeFormProps) {
 
   // GitHub Modal state
   const [showGithubModal, setShowGithubModal] = useState<boolean>(false);
-  const [githubRepoUrl, setGithubRepoUrl] = useState<string>(
-    'https://github.com/Ratan697/buildsprint'
-  );
   const [githubFilePath, setGithubFilePath] = useState<string>(
     'sample-system/schema_v1.sql'
   );
@@ -62,7 +61,7 @@ export default function ChangeForm({ onReset, isSimulated }: ChangeFormProps) {
     setGithubSuccess(null);
 
     try {
-      const match = githubRepoUrl.match(/github\.com\/([^/]+)\/([^/]+)/);
+      const match = repoUrl.match(/github\.com\/([^/]+)\/([^/]+)/);
       if (!match) {
         throw new Error('Invalid GitHub URL format. Expected: https://github.com/owner/repo');
       }
@@ -124,6 +123,9 @@ export default function ChangeForm({ onReset, isSimulated }: ChangeFormProps) {
       target_component: targetComponent,
       v1_sql: v1Sql,
       v2_sql: v2Sql,
+      repo_url: repoUrl.trim() || undefined,
+      branch: githubBranch.trim() || 'main',
+      github_token: githubToken.trim() || undefined,
     });
   };
 
@@ -135,7 +137,7 @@ export default function ChangeForm({ onReset, isSimulated }: ChangeFormProps) {
       <div className="border-b border-gray-100 pb-3 flex items-center justify-between">
         <div>
           <h2 className="text-base font-semibold text-slate-900">Change Parameters</h2>
-          <p className="text-xs text-gray-500 mt-0.5">Specify intended schema or service modification</p>
+          <p className="text-xs text-gray-500 mt-0.5">Specify intended schema and scan entire GitHub codebase</p>
         </div>
 
         <button
@@ -165,6 +167,24 @@ export default function ChangeForm({ onReset, isSimulated }: ChangeFormProps) {
       )}
 
       <div className="flex flex-col gap-4">
+        {/* GitHub Codebase Scanning Target */}
+        <div className="p-3 bg-blue-50/50 border border-blue-200/80 rounded-lg flex flex-col gap-1.5">
+          <label className="text-xs font-semibold text-blue-950 flex items-center gap-1.5">
+            <Code2 className="w-4 h-4 text-blue-600" />
+            <span>GitHub Repository for Full-Codebase Cross-File Scan</span>
+          </label>
+          <input
+            type="text"
+            value={repoUrl}
+            onChange={(e) => setRepoUrl(e.target.value)}
+            placeholder="https://github.com/Ratan697/buildsprint"
+            className="w-full px-3 py-1.5 bg-white border border-blue-200 rounded-md text-xs font-mono text-slate-900 focus:border-blue-400"
+          />
+          <span className="text-[11px] text-blue-700">
+            ChangeShield will inspect all .py, .ts, .tsx, .sql, and .prisma files across this repository.
+          </span>
+        </div>
+
         {/* Category Radio / Toggle */}
         <div className="flex flex-col gap-1.5">
           <label className="text-xs font-semibold text-gray-700">Change Type</label>
@@ -269,17 +289,17 @@ export default function ChangeForm({ onReset, isSimulated }: ChangeFormProps) {
         <button
           type="submit"
           disabled={isLoading}
-          className="flex-1 py-2 px-4 bg-slate-900 hover:bg-slate-800 disabled:bg-slate-500 text-white rounded-md text-xs font-medium transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-xs disabled:cursor-not-allowed"
+          className="flex-1 py-2.5 px-4 bg-slate-900 hover:bg-slate-800 disabled:bg-slate-500 text-white rounded-md text-xs font-medium transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-xs disabled:cursor-not-allowed"
         >
           {isLoading ? (
             <>
               <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
-              <span>Analyzing blast radius...</span>
+              <span>Scanning Full Codebase & Computing Blast Radius...</span>
             </>
           ) : (
             <>
               <Play className="w-3.5 h-3.5 fill-current" />
-              <span>Simulate Change</span>
+              <span>▶ Run Full-Codebase Blast Radius Scan</span>
             </>
           )}
         </button>
@@ -324,8 +344,8 @@ export default function ChangeForm({ onReset, isSimulated }: ChangeFormProps) {
                 <input
                   type="text"
                   required
-                  value={githubRepoUrl}
-                  onChange={(e) => setGithubRepoUrl(e.target.value)}
+                  value={repoUrl}
+                  onChange={(e) => setRepoUrl(e.target.value)}
                   placeholder="https://github.com/Ratan697/buildsprint"
                   className="w-full bg-slate-50 border border-slate-300 rounded-md p-2 text-slate-900 focus:outline-none focus:border-slate-400"
                 />
