@@ -300,3 +300,4 @@ export default function RiskRulesPage() {
     </div>
   );
 }
+
