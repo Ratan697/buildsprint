@@ -15,7 +15,19 @@ export default function Topbar({ onMobileMenuToggle }: TopbarProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   useEffect(() => {
-    setCurrentUser(getCurrentUser());
+    const updateAuth = () => {
+      setCurrentUser(getCurrentUser());
+    };
+
+    updateAuth();
+
+    window.addEventListener('auth-change', updateAuth);
+    window.addEventListener('storage', updateAuth);
+
+    return () => {
+      window.removeEventListener('auth-change', updateAuth);
+      window.removeEventListener('storage', updateAuth);
+    };
   }, []);
 
   const handleSignOut = () => {

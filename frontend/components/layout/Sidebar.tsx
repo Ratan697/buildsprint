@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -12,9 +12,11 @@ import {
   FileText,
   Settings,
   Plus,
-  User,
+  User as UserIcon,
+  LogIn,
 } from 'lucide-react';
 import { NAV_ITEMS } from '@/lib/constants';
+import { getCurrentUser, User } from '@/lib/auth';
 
 const ICON_MAP = {
   Overview: LayoutDashboard,
@@ -32,6 +34,23 @@ interface SidebarProps {
 
 export default function Sidebar({ onMobileClose }: SidebarProps) {
   const pathname = usePathname();
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    const updateAuth = () => {
+      setCurrentUser(getCurrentUser());
+    };
+
+    updateAuth();
+
+    window.addEventListener('auth-change', updateAuth);
+    window.addEventListener('storage', updateAuth);
+
+    return () => {
+      window.removeEventListener('auth-change', updateAuth);
+      window.removeEventListener('storage', updateAuth);
+    };
+  }, []);
 
   return (
     <aside className="w-64 bg-white border-r border-gray-200 flex flex-col justify-between h-full shrink-0 select-none">
@@ -83,16 +102,39 @@ export default function Sidebar({ onMobileClose }: SidebarProps) {
           <span>New Simulation</span>
         </Link>
 
-        {/* User Profile */}
-        <div className="flex items-center gap-3 pt-2">
-          <div className="w-8 h-8 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-600 font-medium text-xs">
-            <User className="w-4 h-4" />
+        {/* Dynamic User Profile / Sign In Link */}
+        {currentUser ? (
+          <div className="flex items-center gap-3 pt-2">
+            <div className="w-8 h-8 rounded-full bg-slate-900 border border-slate-700 flex items-center justify-center text-white font-bold text-xs uppercase shadow-2xs">
+              {currentUser.name ? currentUser.name.charAt(0) : 'U'}
+            </div>
+            <div className="flex flex-col overflow-hidden">
+              <span className="text-sm font-medium text-slate-900 truncate">
+                {currentUser.name}
+              </span>
+              <span className="text-xs text-gray-500 truncate">
+                {currentUser.email}
+              </span>
+            </div>
           </div>
-          <div className="flex flex-col overflow-hidden">
-            <span className="text-sm font-medium text-slate-900 truncate">Dev Engineer</span>
-            <span className="text-xs text-gray-500 truncate">admin@changeshield.io</span>
-          </div>
-        </div>
+        ) : (
+          <Link
+            href="/login"
+            onClick={onMobileClose}
+            className="flex items-center gap-3 pt-2 hover:opacity-80 transition-opacity cursor-pointer group"
+          >
+            <div className="w-8 h-8 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-600 font-medium text-xs group-hover:bg-gray-200">
+              <UserIcon className="w-4 h-4" />
+            </div>
+            <div className="flex flex-col overflow-hidden">
+              <span className="text-sm font-medium text-slate-900 flex items-center gap-1">
+                <span>Sign In</span>
+                <LogIn className="w-3 h-3 text-slate-500" />
+              </span>
+              <span className="text-xs text-gray-500 truncate">Access your workspace</span>
+            </div>
+          </Link>
+        )}
       </div>
     </aside>
   );

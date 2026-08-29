@@ -84,6 +84,7 @@ export function logout(): void {
   if (typeof window !== 'undefined') {
     localStorage.removeItem('changeshield_token');
     localStorage.removeItem('changeshield_user');
+    window.dispatchEvent(new Event('auth-change'));
   }
 }
 
@@ -94,6 +95,7 @@ function persistAuth(token: string, user: User): void {
   if (typeof window !== 'undefined') {
     localStorage.setItem('changeshield_token', token);
     localStorage.setItem('changeshield_user', JSON.stringify(user));
+    window.dispatchEvent(new Event('auth-change'));
   }
 }
 
