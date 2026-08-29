@@ -12,27 +12,40 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Remove default harsh black focus outlines and selection rings */
+/* Eliminate all black selection borders, outlines, and focus rings globally */
 *,
+*::before,
+*::after {
+  --tw-ring-color: transparent !important;
+  --tw-ring-offset-color: transparent !important;
+  --tw-ring-offset-width: 0px !important;
+  --tw-ring-offset-shadow: 0 0 #0000 !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+  outline: none !important;
+}
+
 *:focus,
 *:focus-visible,
 *:focus-within {
   outline: none !important;
+  box-shadow: none !important;
 }
 
-/* Smooth subtle focus for inputs without harsh black borders */
+a:focus,
+a:focus-visible,
+button:focus,
+button:focus-visible,
+div:focus,
+div:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+  border-color: inherit;
+}
+
+/* Subtle clean input focus without black borders */
 input:focus,
 textarea:focus,
 select:focus {
   outline: none !important;
-  box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.15) !important;
-}
-
-button:focus,
-button:focus-visible,
-div:focus,
-div:focus-visible,
-a:focus,
-a:focus-visible {
-  outline: none !important;
+  border-color: #94a3b8 !important;
 }

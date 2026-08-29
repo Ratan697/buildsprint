@@ -77,7 +77,7 @@ export default function Sidebar({ onMobileClose }: SidebarProps) {
                 key={item.name}
                 href={item.href}
                 onClick={onMobileClose}
-                className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-1 ${
+                className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                   isActive
                     ? 'bg-gray-100 text-slate-900 font-semibold'
                     : 'text-gray-600 hover:bg-gray-50 hover:text-slate-900'
@@ -96,7 +96,7 @@ export default function Sidebar({ onMobileClose }: SidebarProps) {
         <Link
           href="/simulations/new"
           onClick={onMobileClose}
-          className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-slate-900 hover:bg-slate-800 text-white rounded-md text-sm font-medium transition-colors shadow-2xs cursor-pointer focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-1"
+          className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-slate-900 hover:bg-slate-800 text-white rounded-md text-sm font-medium transition-colors shadow-2xs cursor-pointer"
         >
           <Plus className="w-4 h-4" />
           <span>New Simulation</span>
