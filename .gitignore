@@ -5,14 +5,10 @@ __pycache__/
 *.so
 .Python
 env/
-build/
-develop-eggs/
 dist/
 downloads/
 eggs/
 .eggs/
-lib/
-lib64/
 parts/
 sdist/
 var/
@@ -41,7 +37,6 @@ venv.bak/
 node_modules/
 .next/
 out/
-build/
 .DS_Store
 *.pem
 
@@ -49,4 +44,3 @@ build/
 .vscode/
 .idea/
 Thumbs.db
-
