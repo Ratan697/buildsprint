@@ -1,0 +1,21 @@
+{
+  "services": [
+    { "id": "api-gateway", "name": "API Gateway", "criticality": 3.0, "type": "gateway" },
+    { "id": "auth-service", "name": "Authentication Service", "criticality": 5.0, "type": "backend" },
+    { "id": "order-service", "name": "Order Management Service", "criticality": 4.5, "type": "backend" },
+    { "id": "payment-service", "name": "Payment Processing Service", "criticality": 5.0, "type": "backend" },
+    { "id": "db-users", "name": "Users & Auth Database", "criticality": 5.0, "type": "database" },
+    { "id": "db-orders", "name": "Orders & Payments Database", "criticality": 4.5, "type": "database" }
+  ],
+  "edges": [
+    { "source": "api-gateway", "target": "auth-service", "relation": "calls" },
+    { "source": "api-gateway", "target": "order-service", "relation": "calls" },
+    { "source": "api-gateway", "target": "payment-service", "relation": "calls" },
+    { "source": "auth-service", "target": "db-users", "relation": "reads_writes" },
+    { "source": "order-service", "target": "auth-service", "relation": "depends_on" },
+    { "source": "order-service", "target": "db-orders", "relation": "reads_writes" },
+    { "source": "payment-service", "target": "order-service", "relation": "depends_on" },
+    { "source": "payment-service", "target": "db-orders", "relation": "reads_writes" }
+  ]
+}
+

@@ -1,0 +1,45 @@
+openapi: 3.0.0
+info:
+  title: E-Commerce Core Services API
+  description: Core microservices gateway exposing user, order, and payment endpoints
+  version: 1.2.0
+paths:
+  /v1/users:
+    get:
+      summary: List all users
+      tags:
+        - user-service
+      responses:
+        '200':
+          description: A list of users
+    post:
+      summary: Create a new user profile
+      tags:
+        - user-service
+      responses:
+        '201':
+          description: User created
+  /v1/orders:
+    get:
+      summary: Retrieve orders by user
+      tags:
+        - order-service
+      responses:
+        '200':
+          description: User orders
+    post:
+      summary: Place a new order
+      tags:
+        - order-service
+      responses:
+        '201':
+          description: Order placed
+  /v1/payments/charge:
+    post:
+      summary: Authorize and capture payment
+      tags:
+        - payment-service
+      responses:
+        '200':
+          description: Payment successful
+
