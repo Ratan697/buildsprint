@@ -187,7 +187,7 @@ export default function DependenciesPage() {
                     node.type
                   )} ${
                     isSelected
-                      ? 'ring-2 ring-slate-900 scale-105 shadow-md'
+                      ? 'border-blue-500 shadow-md scale-105 ring-1 ring-blue-400'
                       : 'hover:scale-102 hover:shadow-xs'
                   }`}
                 >

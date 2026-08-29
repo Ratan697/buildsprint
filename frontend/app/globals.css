@@ -11,3 +11,28 @@ body {
   font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
+
+/* Remove default harsh black focus outlines and selection rings */
+*,
+*:focus,
+*:focus-visible,
+*:focus-within {
+  outline: none !important;
+}
+
+/* Smooth subtle focus for inputs without harsh black borders */
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none !important;
+  box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.15) !important;
+}
+
+button:focus,
+button:focus-visible,
+div:focus,
+div:focus-visible,
+a:focus,
+a:focus-visible {
+  outline: none !important;
+}
