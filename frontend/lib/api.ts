@@ -216,6 +216,89 @@ export async function ingestFile(
 }
 
 /**
+ * Introspects a live PostgreSQL database via POST /ingest/postgres
+ */
+export async function ingestPostgres(payload: {
+  system_name: string;
+  connection_url: string;
+}): Promise<ApiResponse<IngestResponseData>> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/ingest/postgres`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      return {
+        status: response.status,
+        data: null,
+        error: data.detail || 'PostgreSQL Introspection Failed',
+      };
+    }
+
+    return {
+      status: response.status,
+      data,
+      error: null,
+    };
+  } catch (err: any) {
+    return {
+      status: 500,
+      data: null,
+      error: err.message || 'Network error during PostgreSQL introspection',
+    };
+  }
+}
+
+/**
+ * Fetches schema or spec directly from GitHub REST API via POST /ingest/github
+ */
+export async function ingestGithub(payload: {
+  system_name: string;
+  repo_url: string;
+  file_path?: string;
+  branch?: string;
+  github_token?: string;
+}): Promise<ApiResponse<IngestResponseData>> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/ingest/github`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      return {
+        status: response.status,
+        data: null,
+        error: data.detail || 'GitHub Schema Ingestion Failed',
+      };
+    }
+
+    return {
+      status: response.status,
+      data,
+      error: null,
+    };
+  } catch (err: any) {
+    return {
+      status: 500,
+      data: null,
+      error: err.message || 'Network error during GitHub ingestion',
+    };
+  }
+}
+
+/**
  * Ingests raw content string to POST /ingest/raw
  */
 export async function ingestRaw(
