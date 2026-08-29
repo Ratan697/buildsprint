@@ -3,13 +3,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.db.database import engine, Base
 from app.routes.analysis import router as analysis_router
 from app.routes.ingest import router as ingest_router
+from app.routes.auth import router as auth_router
 
 # Create database tables automatically on startup
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="ChangeShield API",
-    description="Schema change simulation, blast radius impact analysis, and system topology ingestion API",
+    description="Schema change simulation, blast radius impact analysis, system topology ingestion, and self-hosted auth API",
     version="1.0.0"
 )
 
@@ -23,6 +24,7 @@ app.add_middleware(
 )
 
 # Mount the routers
+app.include_router(auth_router)
 app.include_router(analysis_router)
 app.include_router(ingest_router)
 

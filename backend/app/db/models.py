@@ -1,12 +1,30 @@
 """
 backend/app/db/models.py
 
-SQLAlchemy ORM models for storing ingested systems and simulation execution history.
+SQLAlchemy ORM models for storing ingested systems, simulation history, and users.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import Column, String, Float, Text, DateTime
 from app.db.database import Base
+
+
+def utc_now():
+    return datetime.now(timezone.utc)
+
+
+class UserModel(Base):
+    """
+    ORM model for self-hosted user accounts.
+    """
+    __tablename__ = "users"
+
+    id = Column(String, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    email = Column(String, unique=True, index=True, nullable=False)
+    hashed_password = Column(String, nullable=False)
+    role = Column(String, nullable=False, default="admin")
+    created_at = Column(DateTime, default=utc_now)
 
 
 class SystemModel(Base):
@@ -20,7 +38,7 @@ class SystemModel(Base):
     source_type = Column(String, nullable=False)
     stats_json = Column(Text, nullable=False)
     graph_json = Column(Text, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now)
 
 
 class SimulationModel(Base):
@@ -35,8 +53,7 @@ class SimulationModel(Base):
     category = Column(String, nullable=False, default="Schema Change")
     risk_score = Column(Float, nullable=False)
     risk_level = Column(String, nullable=False)  # 'Low', 'Medium', 'High'
-    v1_sql = Column(Text, nullable=True)
-    v2_sql = Column(Text, nullable=True)
+    v1_sql = Column(Text, nullable=False)
+    v2_sql = Column(Text, nullable=False)
     result_json = Column(Text, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
-
+    created_at = Column(DateTime, default=utc_now)
