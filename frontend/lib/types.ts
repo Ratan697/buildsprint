@@ -9,7 +9,13 @@ export interface SystemStats {
   lastAnalyzed?: string;
 }
 
-export type ChangeTargetCategory = 'Database' | 'API';
+export type ChangeTargetCategory =
+  | 'Database'
+  | 'TypeScript / React'
+  | 'Python'
+  | 'OpenAPI'
+  | 'General Config'
+  | 'API';
 
 export interface SimulationFormData {
   category: ChangeTargetCategory;
@@ -53,6 +59,24 @@ export interface BackendGraphData {
   edges?: BackendGraphEdge[];
 }
 
+export interface ModifiedSymbol {
+  name: string;
+  kind: string;
+  change_type: 'modified' | 'deleted' | 'added' | string;
+  detail: string;
+}
+
+export interface UniversalSimulateRequest {
+  repo_url: string;
+  branch?: string;
+  github_token?: string;
+  file_path: string;
+  file_type: string;
+  v1_content: string;
+  v2_content: string;
+  target_component?: string;
+}
+
 export interface SimulationRequestPayload {
   target_component: string;
   v1_sql?: string;
@@ -60,6 +84,10 @@ export interface SimulationRequestPayload {
   repo_url?: string;
   branch?: string;
   github_token?: string;
+  file_path?: string;
+  file_type?: string;
+  v1_content?: string;
+  v2_content?: string;
   graph_data?: BackendGraphData;
 }
 
@@ -95,7 +123,8 @@ export interface SimulationResponse {
   target_component?: string;
   risk_score?: number;
   risk_level?: string;
-  schema_modifications: Record<string, unknown>;
+  schema_modifications?: Record<string, unknown>;
+  modified_symbols?: ModifiedSymbol[];
   blast_radius_analysis?: BlastRadiusReport;
   impacted_nodes?: string[];
   impacted_count?: number;

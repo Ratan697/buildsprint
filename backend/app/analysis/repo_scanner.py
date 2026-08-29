@@ -8,7 +8,6 @@ and frontend component impacted by schema and symbol modifications.
 """
 
 import re
-import base64
 import httpx
 from typing import Dict, List, Any, Optional
 
@@ -61,7 +60,8 @@ async def analyze_cross_file_impact(
     github_token: Optional[str] = None
 ) -> List[Dict[str, Any]]:
     """
-    Inspects source code files across the repository for references to changed tables or columns.
+    Inspects source code files across the repository for references to changed functions,
+    types, interfaces, ORM models, tables, or columns.
     """
     match = re.search(r"github\.com/([^/]+)/([^/]+)", repo_url)
     if not match:
@@ -75,11 +75,10 @@ async def analyze_cross_file_impact(
     if github_token:
         headers["Authorization"] = f"token {github_token}"
 
-    # Filter out dist/build/node_modules/venv
     candidate_files = [
         f for f in code_files
         if not f["path"].startswith((".next/", "node_modules/", "venv/", "dist/", ".git/"))
-    ][:25]
+    ][:30]
 
     async with httpx.AsyncClient() as client:
         for file_item in candidate_files:
@@ -97,63 +96,68 @@ async def analyze_cross_file_impact(
             lines = content.splitlines()
 
             for symbol_info in changed_symbols:
-                table_name = symbol_info.get("table", "")
-                col_name = symbol_info.get("column", "")
-                old_type = symbol_info.get("old_type", "")
-                new_type = symbol_info.get("new_type", "")
+                raw_sym_name = symbol_info.get("name", "") or symbol_info.get("column", "") or symbol_info.get("table", "")
+                sym_name = raw_sym_name.split(".")[-1] if "." in raw_sym_name else raw_sym_name
+                kind = symbol_info.get("kind", "symbol")
+                change_type = symbol_info.get("change_type", "modified")
+
+                if not sym_name or len(sym_name) < 2:
+                    continue
+
+                pattern = r"\b" + re.escape(sym_name) + r"\b"
 
                 for idx, line in enumerate(lines, start=1):
-                    contains_table = bool(table_name and re.search(r"\b" + re.escape(table_name) + r"\b", line, re.I))
-                    contains_col = bool(col_name and re.search(r"\b" + re.escape(col_name) + r"\b", line, re.I))
-
-                    if contains_table or contains_col:
+                    if re.search(pattern, line):
                         snippet = line.strip()
                         if not snippet:
                             continue
 
                         # Categorize impact
                         if file_path.endswith(".py"):
-                            if "Column" in line or "model" in file_path.lower() or "db" in file_path.lower():
+                            if "import " in line or "from " in line:
+                                impact_type = "Import Reference"
+                                severity = "CRITICAL" if change_type == "deleted" else "HIGH"
+                                fix = f"Update import statement in {file_path}:{idx} for modified {kind} '{sym_name}'."
+                            elif "def " in line or "@" in line:
+                                impact_type = "Function Call / Handler"
+                                severity = "HIGH"
+                                fix = f"Verify function arguments and caller logic for '{sym_name}' in {file_path}:{idx}."
+                            elif "Column" in line or "model" in file_path.lower():
                                 impact_type = "ORM Model Definition"
                                 severity = "CRITICAL"
-                                fix = f"Update ORM column type for '{col_name or table_name}' in {file_path}:{idx} from {old_type} to {new_type}."
-                            elif "@app." in line or "def " in line or "router" in file_path.lower():
-                                impact_type = "API Endpoint Handler"
-                                severity = "HIGH"
-                                fix = f"Validate request/response serialization for field '{col_name or table_name}' in endpoint at {file_path}:{idx}."
+                                fix = f"Update ORM model definition for '{sym_name}' in {file_path}:{idx}."
                             else:
                                 impact_type = "Backend Reference"
                                 severity = "MEDIUM"
-                                fix = f"Verify variable types referencing '{col_name or table_name}' at {file_path}:{idx}."
+                                fix = f"Review symbol '{sym_name}' reference in {file_path}:{idx}."
 
                         elif file_path.endswith((".ts", ".tsx", ".js", ".jsx")):
-                            if "interface" in line or "type " in line or "types" in file_path.lower():
-                                impact_type = "TypeScript Interface / Type"
+                            if "import " in line or "from " in line:
+                                impact_type = "Module Import Reference"
+                                severity = "CRITICAL" if change_type == "deleted" else "HIGH"
+                                fix = f"Update TypeScript import path/symbol for '{sym_name}' in {file_path}:{idx}."
+                            elif "interface" in line or "type " in line:
+                                impact_type = "TypeScript Interface Annotation"
                                 severity = "HIGH"
-                                fix = f"Update TypeScript type definition for '{col_name or table_name}' to match new type {new_type} in {file_path}:{idx}."
-                            elif "fetch" in line or "api" in file_path.lower() or "useQuery" in line:
+                                fix = f"Update TypeScript type signature for '{sym_name}' in {file_path}:{idx}."
+                            elif "fetch" in line or "useQuery" in line or "api" in file_path.lower():
                                 impact_type = "Frontend API Data Fetching"
                                 severity = "HIGH"
-                                fix = f"Update API payload field mapping for '{col_name or table_name}' in {file_path}:{idx}."
+                                fix = f"Verify API payload parsing for '{sym_name}' in {file_path}:{idx}."
                             else:
-                                impact_type = "Frontend UI Component"
+                                impact_type = "Frontend Component Usage"
                                 severity = "MEDIUM"
-                                fix = f"Verify display formatting for field '{col_name or table_name}' in component {file_path}:{idx}."
-
-                        elif file_path.endswith(".prisma"):
-                            impact_type = "Prisma Schema Model"
-                            severity = "CRITICAL"
-                            fix = f"Migrate Prisma field type for '{col_name or table_name}' to match {new_type} in {file_path}:{idx}."
+                                fix = f"Check UI rendering logic referencing '{sym_name}' in {file_path}:{idx}."
 
                         elif file_path.endswith(".sql"):
                             impact_type = "SQL Query / Migration File"
                             severity = "HIGH"
-                            fix = f"Ensure query cast or column reference handles type change ({old_type} -> {new_type}) in {file_path}:{idx}."
+                            fix = f"Ensure query syntax or column reference handles changes to '{sym_name}' in {file_path}:{idx}."
 
                         else:
                             impact_type = "Codebase Reference"
                             severity = "MEDIUM"
-                            fix = f"Review symbol '{col_name or table_name}' reference in {file_path}:{idx}."
+                            fix = f"Verify '{sym_name}' reference in {file_path}:{idx}."
 
                         impacts.append({
                             "file_path": file_path,
@@ -165,4 +169,3 @@ async def analyze_cross_file_impact(
                         })
 
     return impacts
-

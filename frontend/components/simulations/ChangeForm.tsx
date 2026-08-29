@@ -1,43 +1,94 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ChangeTargetCategory } from '@/lib/types';
-import { useChangeShieldStore } from '@/store/useChangeShieldStore';
 import {
-  Play,
-  RotateCcw,
-  Loader2,
-  AlertCircle,
   GitBranch,
   Copy,
   Check,
+  Loader2,
+  AlertCircle,
+  Play,
+  RotateCcw,
   X,
-  AlertTriangle,
   Code2,
+  FileCode,
 } from 'lucide-react';
+
+import { ChangeTargetCategory } from '@/lib/types';
+import { useChangeShieldStore } from '@/store/useChangeShieldStore';
 
 interface ChangeFormProps {
   onReset: () => void;
   isSimulated: boolean;
 }
 
+const CATEGORY_DEFAULTS: Record<
+  ChangeTargetCategory,
+  { filePath: string; fileType: string; targetComponent: string; v1: string; v2: string; desc: string }
+> = {
+  Database: {
+    filePath: 'sample-system/schema_v1.sql',
+    fileType: 'sql',
+    targetComponent: 'db-users',
+    v1: 'CREATE TABLE users (\n  id INT PRIMARY KEY,\n  email VARCHAR(255),\n  status INT DEFAULT 1\n);',
+    v2: 'CREATE TABLE users (\n  id UUID PRIMARY KEY,\n  email VARCHAR(255),\n  status VARCHAR(50)\n);',
+    desc: 'Migrate user primary key identifier from INT to UUID format.',
+  },
+  'TypeScript / React': {
+    filePath: 'frontend/lib/auth.ts',
+    fileType: 'typescript',
+    targetComponent: 'auth-service',
+    v1: 'export interface User {\n  id: number;\n  email: string;\n}\nexport async function login(email: string): Promise<User> {\n  return { id: 1, email };\n}',
+    v2: 'export interface User {\n  id: string;\n  email: string;\n  role: string;\n}\nexport async function login(email: string, deviceId?: string): Promise<User> {\n  return { id: "uuid-1", email, role: "admin" };\n}',
+    desc: 'Update authentication interface and login signature.',
+  },
+  Python: {
+    filePath: 'backend/app/routes/auth.py',
+    fileType: 'python',
+    targetComponent: 'auth-service',
+    v1: 'def login_user(email: str, password: str):\n    return {"token": "123", "user_id": 1}',
+    v2: 'def login_user(email: str, password: str, device_fingerprint: str):\n    return {"token": "123", "user_id": "uuid-123"}',
+    desc: 'Modify backend login router signature to require device fingerprint.',
+  },
+  OpenAPI: {
+    filePath: 'sample-system/openapi.yaml',
+    fileType: 'openapi',
+    targetComponent: 'api-gateway',
+    v1: 'openapi: 3.0.0\ninfo:\n  title: Core API\npaths:\n  /v1/users:\n    get:\n      summary: Get users',
+    v2: 'openapi: 3.0.0\ninfo:\n  title: Core API\npaths:\n  /v2/users:\n    get:\n      summary: Get users v2',
+    desc: 'Upgrade REST API endpoint schema from v1 to v2.',
+  },
+  'General Config': {
+    filePath: 'sample-system/topology.json',
+    fileType: 'config',
+    targetComponent: 'api-gateway',
+    v1: '{\n  "services": [{"id": "user-service"}]\n}',
+    v2: '{\n  "services": [{"id": "user-service-v2"}]\n}',
+    desc: 'Rename service identifier in system topology configuration.',
+  },
+  API: {
+    filePath: 'sample-system/openapi.yaml',
+    fileType: 'openapi',
+    targetComponent: 'api-gateway',
+    v1: 'openapi: 3.0.0\ninfo:\n  title: Core API',
+    v2: 'openapi: 3.0.0\ninfo:\n  title: Core API v2',
+    desc: 'Update API Gateway service contract.',
+  },
+};
+
 export default function ChangeForm({ onReset, isSimulated }: ChangeFormProps) {
   const { runSimulation, isLoading, error, clearError } = useChangeShieldStore();
 
   const [category, setCategory] = useState<ChangeTargetCategory>('Database');
-  const [targetComponent, setTargetComponent] = useState('db-users');
   const [repoUrl, setRepoUrl] = useState('https://github.com/Ratan697/buildsprint');
-  const [v1Sql, setV1Sql] = useState('CREATE TABLE users (\n  id INT PRIMARY KEY,\n  email VARCHAR(255),\n  status VARCHAR(50)\n);');
-  const [v2Sql, setV2Sql] = useState('CREATE TABLE users (\n  id UUID PRIMARY KEY,\n  email VARCHAR(255),\n  phone VARCHAR(20)\n);');
-  const [description, setDescription] = useState(
-    'Migrate customer identifier from integer to UUID format across system schema.'
-  );
+  const [targetComponent, setTargetComponent] = useState('db-users');
+  const [filePath, setFilePath] = useState('sample-system/schema_v1.sql');
+  const [v1Content, setV1Content] = useState(CATEGORY_DEFAULTS['Database'].v1);
+  const [v2Content, setV2Content] = useState(CATEGORY_DEFAULTS['Database'].v2);
+  const [description, setDescription] = useState(CATEGORY_DEFAULTS['Database'].desc);
 
   // GitHub Modal state
   const [showGithubModal, setShowGithubModal] = useState<boolean>(false);
-  const [githubFilePath, setGithubFilePath] = useState<string>(
-    'sample-system/schema_v1.sql'
-  );
   const [githubBranch, setGithubBranch] = useState<string>('main');
   const [githubToken, setGithubToken] = useState<string>('');
 
@@ -45,11 +96,20 @@ export default function ChangeForm({ onReset, isSimulated }: ChangeFormProps) {
   const [githubError, setGithubError] = useState<string | null>(null);
   const [githubSuccess, setGithubSuccess] = useState<string | null>(null);
 
-  // Copy V1 to V2 state
   const [copySuccess, setCopySuccess] = useState<boolean>(false);
 
+  const handleCategoryChange = (cat: ChangeTargetCategory) => {
+    setCategory(cat);
+    const def = CATEGORY_DEFAULTS[cat] || CATEGORY_DEFAULTS['Database'];
+    setFilePath(def.filePath);
+    setTargetComponent(def.targetComponent);
+    setV1Content(def.v1);
+    setV2Content(def.v2);
+    setDescription(def.desc);
+  };
+
   const handleCopyV1ToV2 = () => {
-    setV2Sql(v1Sql);
+    setV2Content(v1Content);
     setCopySuccess(true);
     setTimeout(() => setCopySuccess(false), 2000);
   };
@@ -68,7 +128,7 @@ export default function ChangeForm({ onReset, isSimulated }: ChangeFormProps) {
 
       const owner = match[1];
       const repo = match[2].replace('.git', '');
-      const filePath = githubFilePath.trim().replace(/^\//, '');
+      const path = filePath.trim().replace(/^\//, '');
       const branch = githubBranch.trim() || 'main';
 
       const headers: Record<string, string> = {
@@ -79,12 +139,12 @@ export default function ChangeForm({ onReset, isSimulated }: ChangeFormProps) {
       }
 
       const res = await fetch(
-        `https://api.github.com/repos/${owner}/${repo}/contents/${filePath}?ref=${branch}`,
+        `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`,
         { headers }
       );
 
       if (res.status === 404) {
-        throw new Error(`File '${filePath}' not found in repo ${owner}/${repo} (branch: ${branch}).`);
+        throw new Error(`File '${path}' not found in repo ${owner}/${repo} (branch: ${branch}).`);
       } else if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
         throw new Error(errData.message || 'Failed to fetch file from GitHub.');
@@ -101,8 +161,8 @@ export default function ChangeForm({ onReset, isSimulated }: ChangeFormProps) {
         throw new Error('Retrieved GitHub file content is empty.');
       }
 
-      setV1Sql(rawContent);
-      setGithubSuccess(`Loaded ${filePath} from ${owner}/${repo}!`);
+      setV1Content(rawContent);
+      setGithubSuccess(`Loaded ${path} from ${owner}/${repo}!`);
       setTimeout(() => {
         setShowGithubModal(false);
         setGithubSuccess(null);
@@ -119,10 +179,16 @@ export default function ChangeForm({ onReset, isSimulated }: ChangeFormProps) {
     e.preventDefault();
     clearError();
 
+    const def = CATEGORY_DEFAULTS[category] || CATEGORY_DEFAULTS['Database'];
+
     await runSimulation({
       target_component: targetComponent,
-      v1_sql: v1Sql,
-      v2_sql: v2Sql,
+      file_path: filePath.trim(),
+      file_type: def.fileType,
+      v1_content: v1Content,
+      v2_content: v2Content,
+      v1_sql: category === 'Database' ? v1Content : undefined,
+      v2_sql: category === 'Database' ? v2Content : undefined,
       repo_url: repoUrl.trim() || undefined,
       branch: githubBranch.trim() || 'main',
       github_token: githubToken.trim() || undefined,
@@ -134,10 +200,12 @@ export default function ChangeForm({ onReset, isSimulated }: ChangeFormProps) {
       onSubmit={handleSubmit}
       className="bg-white border border-gray-200 rounded-lg p-6 flex flex-col gap-5 shadow-xs"
     >
-      <div className="border-b border-gray-100 pb-3 flex items-center justify-between">
+      <div className="border-b border-gray-100 pb-3 flex items-center justify-between flex-wrap gap-2">
         <div>
           <h2 className="text-base font-semibold text-slate-900">Change Parameters</h2>
-          <p className="text-xs text-gray-500 mt-0.5">Specify intended schema and scan entire GitHub codebase</p>
+          <p className="text-xs text-gray-500 mt-0.5">
+            Simulate modifications on ANY code, API, or schema file in your repository
+          </p>
         </div>
 
         <button
@@ -146,7 +214,7 @@ export default function ChangeForm({ onReset, isSimulated }: ChangeFormProps) {
           className="px-2.5 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-medium rounded-md flex items-center gap-1.5 transition-colors border border-slate-200 cursor-pointer"
         >
           <GitBranch className="w-3.5 h-3.5 text-blue-600" />
-          <span>📥 Load V1 from GitHub</span>
+          <span>📥 Load File from GitHub</span>
         </button>
       </div>
 
@@ -166,8 +234,37 @@ export default function ChangeForm({ onReset, isSimulated }: ChangeFormProps) {
         </div>
       )}
 
+      {/* Category Tabs */}
+      <div className="flex flex-col gap-1.5">
+        <label className="text-xs font-semibold text-gray-700">File & Language Category</label>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          {(
+            [
+              'Database',
+              'TypeScript / React',
+              'Python',
+              'OpenAPI',
+              'General Config',
+            ] as ChangeTargetCategory[]
+          ).map((cat) => (
+            <button
+              key={cat}
+              type="button"
+              onClick={() => handleCategoryChange(cat)}
+              className={`py-1.5 px-2.5 border rounded-md text-xs font-medium transition-colors cursor-pointer text-center ${
+                category === cat
+                  ? 'bg-slate-900 text-white border-slate-900 font-semibold shadow-xs'
+                  : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="flex flex-col gap-4">
-        {/* GitHub Codebase Scanning Target */}
+        {/* GitHub Repository Target */}
         <div className="p-3 bg-blue-50/50 border border-blue-200/80 rounded-lg flex flex-col gap-1.5">
           <label className="text-xs font-semibold text-blue-950 flex items-center gap-1.5">
             <Code2 className="w-4 h-4 text-blue-600" />
@@ -180,49 +277,42 @@ export default function ChangeForm({ onReset, isSimulated }: ChangeFormProps) {
             placeholder="https://github.com/Ratan697/buildsprint"
             className="w-full px-3 py-1.5 bg-white border border-blue-200 rounded-md text-xs font-mono text-slate-900 focus:border-blue-400"
           />
-          <span className="text-[11px] text-blue-700">
-            ChangeShield will inspect all .py, .ts, .tsx, .sql, and .prisma files across this repository.
-          </span>
         </div>
 
-        {/* Category Radio / Toggle */}
-        <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-semibold text-gray-700">Change Type</label>
-          <div className="grid grid-cols-2 gap-2">
-            {(['Database', 'API'] as ChangeTargetCategory[]).map((cat) => (
-              <button
-                key={cat}
-                type="button"
-                onClick={() => setCategory(cat)}
-                className={`py-1.5 px-3 border rounded-md text-xs font-medium transition-colors cursor-pointer ${
-                  category === cat
-                    ? 'bg-slate-900 text-white border-slate-900 font-semibold'
-                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-                }`}
-              >
-                {cat}
-              </button>
-            ))}
+        {/* Target File Path and Architecture Node */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-semibold text-gray-700 flex items-center gap-1">
+              <FileCode className="w-3.5 h-3.5 text-indigo-600" />
+              <span>Target File Path in Repo</span>
+            </label>
+            <input
+              type="text"
+              required
+              value={filePath}
+              onChange={(e) => setFilePath(e.target.value)}
+              placeholder="e.g. frontend/lib/auth.ts"
+              className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-xs text-slate-900 font-mono focus:border-slate-400"
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-semibold text-gray-700">Origin Service / Component</label>
+            <input
+              type="text"
+              required
+              value={targetComponent}
+              onChange={(e) => setTargetComponent(e.target.value)}
+              placeholder="e.g. db-users or auth-service"
+              className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-xs text-slate-900 font-mono focus:border-slate-400"
+            />
           </div>
         </div>
 
-        {/* Target Component */}
-        <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-semibold text-gray-700">Target Component (Start Node)</label>
-          <input
-            type="text"
-            required
-            value={targetComponent}
-            onChange={(e) => setTargetComponent(e.target.value)}
-            placeholder="e.g. db-users or user-service"
-            className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-xs text-slate-900 font-mono focus:border-slate-400"
-          />
-        </div>
-
-        {/* v1 SQL Schema */}
+        {/* V1 Original Content */}
         <div className="flex flex-col gap-1.5">
           <div className="flex items-center justify-between">
-            <label className="text-xs font-semibold text-gray-700">Original Schema Statement (v1_sql)</label>
+            <label className="text-xs font-semibold text-gray-700">Original File Content (V1)</label>
             <button
               type="button"
               onClick={() => setShowGithubModal(true)}
@@ -233,18 +323,17 @@ export default function ChangeForm({ onReset, isSimulated }: ChangeFormProps) {
             </button>
           </div>
           <textarea
-            rows={4}
-            value={v1Sql}
-            onChange={(e) => setV1Sql(e.target.value)}
-            placeholder="CREATE TABLE users (id INT PRIMARY KEY);"
+            rows={5}
+            value={v1Content}
+            onChange={(e) => setV1Content(e.target.value)}
             className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-xs text-slate-900 font-mono focus:border-slate-400"
           />
         </div>
 
-        {/* v2 SQL Schema */}
+        {/* V2 Proposed Content */}
         <div className="flex flex-col gap-1.5">
           <div className="flex items-center justify-between">
-            <label className="text-xs font-semibold text-gray-700">Updated Schema Statement (v2_sql)</label>
+            <label className="text-xs font-semibold text-gray-700">Updated File Content (V2)</label>
             <button
               type="button"
               onClick={handleCopyV1ToV2}
@@ -264,10 +353,9 @@ export default function ChangeForm({ onReset, isSimulated }: ChangeFormProps) {
             </button>
           </div>
           <textarea
-            rows={4}
-            value={v2Sql}
-            onChange={(e) => setV2Sql(e.target.value)}
-            placeholder="CREATE TABLE users (id UUID PRIMARY KEY);"
+            rows={5}
+            value={v2Content}
+            onChange={(e) => setV2Content(e.target.value)}
             className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-xs text-slate-900 font-mono focus:border-slate-400"
           />
         </div>
@@ -294,7 +382,7 @@ export default function ChangeForm({ onReset, isSimulated }: ChangeFormProps) {
           {isLoading ? (
             <>
               <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
-              <span>Scanning Full Codebase & Computing Blast Radius...</span>
+              <span>Analyzing Universal Codebase Impact...</span>
             </>
           ) : (
             <>
@@ -316,7 +404,7 @@ export default function ChangeForm({ onReset, isSimulated }: ChangeFormProps) {
         )}
       </div>
 
-      {/* GitHub V1 Fetch Modal */}
+      {/* GitHub Load Modal */}
       {showGithubModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white border border-slate-200 rounded-xl shadow-2xl max-w-md w-full p-5 space-y-4">
@@ -324,7 +412,7 @@ export default function ChangeForm({ onReset, isSimulated }: ChangeFormProps) {
               <div className="flex items-center space-x-2">
                 <GitBranch className="w-4 h-4 text-blue-600" />
                 <h3 className="font-semibold text-sm text-slate-900">
-                  Load V1 Schema from GitHub
+                  Load File from GitHub
                 </h3>
               </div>
               <button
@@ -353,14 +441,14 @@ export default function ChangeForm({ onReset, isSimulated }: ChangeFormProps) {
 
               <div>
                 <label className="block font-medium text-slate-700 mb-1">
-                  Target File Path
+                  File Path in Repository
                 </label>
                 <input
                   type="text"
                   required
-                  value={githubFilePath}
-                  onChange={(e) => setGithubFilePath(e.target.value)}
-                  placeholder="sample-system/schema_v1.sql"
+                  value={filePath}
+                  onChange={(e) => setFilePath(e.target.value)}
+                  placeholder="frontend/lib/auth.ts"
                   className="w-full bg-slate-50 border border-slate-300 rounded-md p-2 text-slate-900 font-mono focus:outline-none focus:border-slate-400"
                 />
               </div>
@@ -395,7 +483,7 @@ export default function ChangeForm({ onReset, isSimulated }: ChangeFormProps) {
 
               {githubError && (
                 <div className="p-2.5 bg-rose-50 border border-rose-200 text-rose-700 rounded-md flex items-center space-x-2">
-                  <AlertTriangle className="w-4 h-4 shrink-0" />
+                  <AlertCircle className="w-4 h-4 shrink-0" />
                   <span>{githubError}</span>
                 </div>
               )}
@@ -425,10 +513,10 @@ export default function ChangeForm({ onReset, isSimulated }: ChangeFormProps) {
                   {fetchingGithub ? (
                     <>
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      <span>Fetching Schema...</span>
+                      <span>Fetching File...</span>
                     </>
                   ) : (
-                    <span>Fetch Schema File</span>
+                    <span>Fetch File Content</span>
                   )}
                 </button>
               </div>

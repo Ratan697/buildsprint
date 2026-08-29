@@ -98,6 +98,51 @@ export interface SimulateChangePayload {
 export type SimulateChangeResponse = SimulationResponse;
 
 /**
+ * Runs a Universal Multi-Language File Impact Simulation via POST /analysis/universal-simulate
+ */
+export async function simulateUniversalImpact(payload: {
+  repo_url: string;
+  branch?: string;
+  github_token?: string;
+  file_path: string;
+  file_type: string;
+  v1_content: string;
+  v2_content: string;
+  target_component?: string;
+}): Promise<ApiResponse<SimulationResponse>> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/analysis/universal-simulate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      let errorMsg = `Server error ${res.status}: ${res.statusText}`;
+      try {
+        const errorJson = await res.json();
+        if (errorJson.detail) {
+          errorMsg = typeof errorJson.detail === 'string'
+            ? errorJson.detail
+            : JSON.stringify(errorJson.detail);
+        }
+      } catch {
+        // Fallback
+      }
+      return { data: null, error: errorMsg, status: res.status };
+    }
+
+    const data: SimulationResponse = await res.json();
+    return { data, error: null, status: res.status };
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : 'Network error or backend unreachable';
+    return { data: null, error: errorMsg, status: 500 };
+  }
+}
+
+/**
  * Runs a full repository codebase impact simulation via POST /analysis/repo-simulate
  */
 export async function simulateRepoImpact(payload: {

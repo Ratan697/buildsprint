@@ -5,7 +5,7 @@ import {
   SimulationResponse,
   ActiveTab,
 } from '@/lib/types';
-import { simulateSchemaImpact, simulateRepoImpact } from '@/lib/api';
+import { simulateSchemaImpact, simulateRepoImpact, simulateUniversalImpact } from '@/lib/api';
 
 export interface SystemState {
   currentProject: string;
@@ -75,7 +75,18 @@ export const useChangeShieldStore = create<SystemState>((set) => ({
     });
 
     let res;
-    if (payload.repo_url && payload.repo_url.trim()) {
+    if (payload.file_path && payload.v1_content !== undefined) {
+      res = await simulateUniversalImpact({
+        repo_url: payload.repo_url?.trim() || 'https://github.com/Ratan697/buildsprint',
+        branch: payload.branch || 'main',
+        github_token: payload.github_token,
+        file_path: payload.file_path.trim(),
+        file_type: payload.file_type || 'typescript',
+        v1_content: payload.v1_content || '',
+        v2_content: payload.v2_content || '',
+        target_component: payload.target_component || 'api-gateway',
+      });
+    } else if (payload.repo_url && payload.repo_url.trim()) {
       res = await simulateRepoImpact({
         repo_url: payload.repo_url.trim(),
         branch: payload.branch || 'main',
