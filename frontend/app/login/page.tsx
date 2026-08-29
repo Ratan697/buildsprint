@@ -3,14 +3,12 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  Shield,
   Lock,
   Mail,
   User,
   AlertCircle,
   Loader2,
   ArrowRight,
-  Sparkles,
 } from 'lucide-react';
 
 import { login, register } from '@/lib/auth';
@@ -34,7 +32,7 @@ export default function LoginPage() {
     let res;
     if (isSignUp) {
       if (!name.trim()) {
-        setErrorMsg('Please enter your name.');
+        setErrorMsg('Please enter your full name.');
         setLoading(false);
         return;
       }
@@ -47,70 +45,54 @@ export default function LoginPage() {
       setErrorMsg(res.error);
     } else {
       router.push('/');
-    }
-    setLoading(false);
-  };
-
-  const handleDemoLogin = async (demoEmail: string, demoName: string) => {
-    setLoading(true);
-    setErrorMsg(null);
-    const demoPassword = 'Password123!';
-
-    let res = await login(demoEmail, demoPassword);
-    if (res.error) {
-      res = await register(demoName, demoEmail, demoPassword);
-    }
-
-    if (res.error) {
-      setErrorMsg(res.error);
-    } else {
-      router.push('/');
+      router.refresh();
     }
     setLoading(false);
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-4">
+    <div className="min-h-[calc(100vh-8rem)] flex items-center justify-center p-4">
       <div className="max-w-md w-full space-y-6">
-        {/* Logo / Header */}
-        <div className="text-center space-y-2">
-          <div className="inline-flex p-3 bg-blue-600/10 border border-blue-500/20 rounded-2xl mb-2 text-blue-500">
-            <Shield className="w-8 h-8" />
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight text-white">
-            ChangeShield Platform
+        {/* Header without shield icon */}
+        <div className="text-center space-y-1">
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+            {isSignUp ? 'Create your account' : 'Welcome back'}
           </h1>
-          <p className="text-xs text-slate-400">
-            Schema Change Impact & Blast Radius Intelligence
+          <p className="text-xs text-slate-500">
+            {isSignUp
+              ? 'Get started with ChangeShield schema intelligence'
+              : 'Enter your credentials to access your workspace'}
           </p>
         </div>
 
-        {/* Card */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl p-6 space-y-6">
+        {/* Minimalist Card */}
+        <div className="bg-white border border-slate-200 rounded-xl shadow-xs p-6 space-y-5">
           {/* Toggle Tabs */}
-          <div className="grid grid-cols-2 p-1 bg-slate-950 rounded-xl">
+          <div className="grid grid-cols-2 p-1 bg-slate-100 rounded-lg">
             <button
+              type="button"
               onClick={() => {
                 setIsSignUp(false);
                 setErrorMsg(null);
               }}
-              className={`py-2 text-xs font-medium rounded-lg transition-colors cursor-pointer ${
+              className={`py-1.5 text-xs font-medium rounded-md transition-colors cursor-pointer ${
                 !isSignUp
-                  ? 'bg-slate-800 text-white shadow-xs'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'bg-white text-slate-900 shadow-xs'
+                  : 'text-slate-500 hover:text-slate-900'
               }`}
             >
               Sign In
             </button>
             <button
+              type="button"
               onClick={() => {
                 setIsSignUp(true);
                 setErrorMsg(null);
               }}
-              className={`py-2 text-xs font-medium rounded-lg transition-colors cursor-pointer ${
+              className={`py-1.5 text-xs font-medium rounded-md transition-colors cursor-pointer ${
                 isSignUp
-                  ? 'bg-slate-800 text-white shadow-xs'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'bg-white text-slate-900 shadow-xs'
+                  : 'text-slate-500 hover:text-slate-900'
               }`}
             >
               Create Account
@@ -120,59 +102,59 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="space-y-4 text-xs">
             {isSignUp && (
               <div>
-                <label className="block text-slate-300 font-medium mb-1">
+                <label className="block text-slate-700 font-medium mb-1">
                   Full Name
                 </label>
                 <div className="relative">
-                  <User className="w-4 h-4 absolute left-3 top-2.5 text-slate-500" />
+                  <User className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
                   <input
                     type="text"
                     required
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="John Doe"
-                    className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Jane Doe"
+                    className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900 placeholder:text-slate-400"
                   />
                 </div>
               </div>
             )}
 
             <div>
-              <label className="block text-slate-300 font-medium mb-1">
+              <label className="block text-slate-700 font-medium mb-1">
                 Email Address
               </label>
               <div className="relative">
-                <Mail className="w-4 h-4 absolute left-3 top-2.5 text-slate-500" />
+                <Mail className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
                 <input
                   type="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@changeshield.dev"
-                  className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="name@company.com"
+                  className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900 placeholder:text-slate-400"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-slate-300 font-medium mb-1">
+              <label className="block text-slate-700 font-medium mb-1">
                 Password
               </label>
               <div className="relative">
-                <Lock className="w-4 h-4 absolute left-3 top-2.5 text-slate-500" />
+                <Lock className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
                 <input
                   type="password"
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900 placeholder:text-slate-400"
                 />
               </div>
             </div>
 
             {errorMsg && (
-              <div className="p-3 bg-rose-950/40 border border-rose-900/60 text-rose-300 rounded-lg flex items-center space-x-2 text-xs">
+              <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-lg flex items-center space-x-2 text-xs">
                 <AlertCircle className="w-4 h-4 flex-shrink-0" />
                 <span>{errorMsg}</span>
               </div>
@@ -181,12 +163,12 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs rounded-lg shadow-xs flex items-center justify-center space-x-2 transition-colors disabled:opacity-50 cursor-pointer"
+              className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs rounded-lg shadow-xs flex items-center justify-center space-x-2 transition-colors disabled:opacity-50 cursor-pointer"
             >
               {loading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Authenticating...</span>
+                  <span>Please wait...</span>
                 </>
               ) : (
                 <>
@@ -196,33 +178,8 @@ export default function LoginPage() {
               )}
             </button>
           </form>
-
-          {/* Quick Demo Shortcuts */}
-          <div className="border-t border-slate-800 pt-4 space-y-2">
-            <div className="flex items-center space-x-1 text-slate-400 text-[11px] font-medium">
-              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-              <span>Quick Demo Access:</span>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => handleDemoLogin('admin@changeshield.dev', 'Demo Admin')}
-                className="p-2 bg-slate-950 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white rounded-lg text-xs font-medium text-center transition-colors cursor-pointer"
-              >
-                Demo Admin
-              </button>
-              <button
-                type="button"
-                onClick={() => handleDemoLogin('engineer@changeshield.dev', 'Demo Engineer')}
-                className="p-2 bg-slate-950 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white rounded-lg text-xs font-medium text-center transition-colors cursor-pointer"
-              >
-                Demo Engineer
-              </button>
-            </div>
-          </div>
         </div>
       </div>
     </div>
   );
 }
-
