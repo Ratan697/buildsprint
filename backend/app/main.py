@@ -20,7 +20,6 @@ app.add_middleware(
 # Mount the analysis router
 app.include_router(analysis_router)
 
-@app.get("/health", tags=["Health"])
-def health_check():
-    return {"status": "ok"}
-    
+@app.get("/")
+def root():
+    return {"message": "Welcome to ChangeShield API", "docs": "/docs"}

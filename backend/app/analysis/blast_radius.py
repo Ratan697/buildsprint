@@ -1,66 +1,59 @@
 import networkx as nx
-from typing import Any, Dict, List
+from typing import Dict, List, Any, Optional
 
 class DependencyGraph:
-    """Builds a dependency graph from service metadata and computes blast radius impact."""
-    
-    def __init__(self, data: Dict[str, Any]):
+    def __init__(self, data: Optional[Dict[str, Any]] = None):
         self.graph = nx.DiGraph()
-        nodes = data.get("nodes", {
-            "db-users": {"criticality": 4, "tier": "database"},
-            "user-service": {"criticality": 4, "tier": "backend"},
-            "auth-service": {"criticality": 5, "tier": "security"},
-            "frontend-web": {"criticality": 3, "tier": "frontend"}
-        })
-        edges = data.get("edges", [
-            ("db-users", "user-service"),
-            ("user-service", "auth-service"),
-            ("user-service", "frontend-web")
-        ])
-        
-        for node, attrs in nodes.items():
-            self.graph.add_node(node, **attrs)
-        for u, v in edges:
-            self.graph.add_edge(u, v)
+        if data:
+            self.build_graph(data)
 
-    def simulate_blast(self, target_component: str, max_depth: int = 3) -> Dict[str, Any]:
-        if target_component not in self.graph:
-            target_component = "db-users"
+    def build_graph(self, data: Dict[str, Any]) -> nx.DiGraph:
+        self.graph.clear()
+        services = data.get("services") or data.get("nodes") or []
+        for service in services:
+            service_id = service.get("id")
+            if service_id:
+                attrs = {k: v for k, v in service.items() if k != "id"}
+                self.graph.add_node(service_id, **attrs)
+        for edge in data.get("edges", []):
+            source, target = edge.get("source"), edge.get("target")
+            if source and target:
+                attrs = {k: v for k, v in edge.items() if k not in ("source", "target")}
+                self.graph.add_edge(source, target, **attrs)
+        return self.graph
+
+    def analyze_blast_radius(self, start_node: str, reverse_direction: bool = True, max_depth: Optional[int] = None) -> Dict[str, Any]:
+        if start_node not in self.graph:
+            raise ValueError(f"Target component '{start_node}' not found in dependency graph.")
+        
+        working_graph = self.graph.reverse(copy=False) if reverse_direction else self.graph
+        lengths = nx.single_source_shortest_path_length(working_graph, start_node, cutoff=max_depth)
+        impacted_nodes = [node for node in lengths if node != start_node]
+        
+        all_paths, total_risk, node_details = {}, 0.0, {}
+        for target in impacted_nodes:
+            paths = list(nx.all_simple_paths(working_graph, source=start_node, target=target))
+            all_paths[target] = paths
             
-        try:
-            lengths = nx.single_source_shortest_path_length(self.graph, target_component, cutoff=max_depth)
-        except Exception:
-            lengths = {target_component: 0}
-
-        impacted_nodes = [node for node in lengths if node != target_component]
-        node_details = {}
-        total_risk = 0.0
-        evidence_paths = {}
-        
         for node in impacted_nodes:
             depth = lengths[node]
-            crit = self.graph.nodes[node].get("criticality", 3)
-            risk_contrib = round(crit / depth, 2) if depth > 0 else float(crit)
-            total_risk += risk_contrib
-            
+            attrs = self.graph.nodes[node]
+            criticality = float(attrs.get("criticality", 1.0))
+            node_risk = criticality * (1.0 / depth)
+            total_risk += node_risk
             node_details[node] = {
                 "depth": depth,
-                "criticality": float(crit),
-                "risk_contribution": risk_contrib,
-                "attributes": self.graph.nodes[node]
+                "criticality": criticality,
+                "risk_contribution": round(node_risk, 2),
+                "attributes": dict(attrs)
             }
             
-            try:
-                paths = list(nx.all_simple_paths(self.graph, target_component, node, cutoff=max_depth))
-                evidence_paths[node] = paths
-            except Exception:
-                evidence_paths[node] = [[target_component, node]]
-
+        start_criticality = float(self.graph.nodes[start_node].get("criticality", 1.0))
         return {
-            "target_component": target_component,
+            "start_node": start_node,
             "impacted_nodes": impacted_nodes,
             "impacted_count": len(impacted_nodes),
-            "risk_score": round(total_risk, 2),
-            "evidence_paths": evidence_paths,
+            "paths": all_paths,
+            "risk_score": round(start_criticality + total_risk, 2),
             "node_details": node_details
         }
