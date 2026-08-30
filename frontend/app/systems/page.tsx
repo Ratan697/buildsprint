@@ -3,30 +3,29 @@
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import {
-  Cpu,
-  Server,
+  Upload,
   Database,
-  GitBranch,
+  Server,
   Globe,
   Network,
-  Plus,
-  RefreshCw,
-  Trash2,
+  GitBranch,
+  Play,
+  ArrowRight,
+  Shield,
+  Sliders,
   CheckCircle2,
   AlertTriangle,
-  Play,
-  FileCode,
-  Clock,
   X,
   ChevronRight,
   Sparkles,
   FileText,
   ShieldCheck,
-  ArrowRight,
-  Shield,
-  Sliders,
+  RefreshCw,
+  Plus,
+  Trash2,
+  Cpu,
+  Clock,
   Check,
-  Layers,
 } from 'lucide-react';
 import SourceSelector from '@/components/systems/SourceSelector';
 import FileUpload from '@/components/systems/FileUpload';
@@ -74,9 +73,9 @@ const DEFAULT_REGISTERED_SYSTEMS: RegisteredSystem[] = [
     status: 'Healthy',
     lastAnalyzed: '15 mins ago',
     metrics: {
-      services: 7,
-      apis: 18,
-      databases: 3,
+      services: 8,
+      apis: 12,
+      databases: 4,
       externalIntegrations: 2,
     },
     componentsList: {
@@ -110,8 +109,8 @@ const DEFAULT_REGISTERED_SYSTEMS: RegisteredSystem[] = [
     status: 'Healthy',
     lastAnalyzed: '1 hour ago',
     metrics: {
-      services: 4,
-      apis: 12,
+      services: 3,
+      apis: 6,
       databases: 2,
       externalIntegrations: 3,
     },
@@ -132,58 +131,58 @@ const DEFAULT_REGISTERED_SYSTEMS: RegisteredSystem[] = [
     },
   },
   {
-    id: 'sys-identity-auth',
-    name: 'Identity & Auth Service',
+    id: 'sys-catalog-microservice',
+    name: 'Catalog Microservice',
     sourceType: 'openapi',
     sourceLabel: 'OpenAPI 3.0 Spec',
-    repoUrl: 'https://github.com/org/identity-auth',
+    repoUrl: 'https://github.com/org/catalog-service',
     branch: 'main',
     lastCommitSha: '2d7f8a1',
-    lastCommitMessage: 'refactor(jwt): rotate signing keys and claim headers',
-    status: 'Healthy',
+    lastCommitMessage: 'refactor(api): update category_id payload types',
+    status: 'Warning',
     lastAnalyzed: '3 hours ago',
     metrics: {
-      services: 3,
-      apis: 14,
+      services: 2,
+      apis: 8,
       databases: 1,
       externalIntegrations: 1,
     },
     componentsList: {
       services: [
-        { name: 'auth-service', criticality: 5.0, type: 'backend' },
-        { name: 'api-gateway', criticality: 4.0, type: 'gateway' },
+        { name: 'catalog-service', criticality: 3.8, type: 'backend' },
+        { name: 'inventory-worker', criticality: 3.0, type: 'worker' },
       ],
       endpoints: [
-        { method: 'POST', path: '/v1/auth/token', consumers: 8 },
-        { method: 'GET', path: '/v1/auth/userinfo', consumers: 7 },
+        { method: 'GET', path: '/v1/products', consumers: 5 },
+        { method: 'POST', path: '/v1/products/category', consumers: 2 },
       ],
-      tables: [{ name: 'accounts', columnsCount: 22 }],
+      tables: [{ name: 'products', columnsCount: 22 }],
     },
   },
   {
-    id: 'sys-analytics-lake',
-    name: 'Analytics & Reporting Lake',
+    id: 'sys-order-engine',
+    name: 'Order Processing Engine',
     sourceType: 'file',
-    sourceLabel: 'SQL DDL Upload',
-    repoUrl: 'https://github.com/org/analytics-lake',
+    sourceLabel: 'SQL DDL Schema File',
+    repoUrl: 'https://github.com/org/order-engine',
     branch: 'main',
     lastCommitSha: 'f8101a2',
-    lastCommitMessage: 'feat(events): partition legacy_user_events by year',
-    status: 'Warning',
-    lastAnalyzed: 'Yesterday',
+    lastCommitMessage: 'feat(ddl): add foreign key fk_orders_user to order_items',
+    status: 'Analyzing',
+    lastAnalyzed: 'Just now',
     metrics: {
-      services: 4,
-      apis: 10,
-      databases: 2,
-      externalIntegrations: 2,
+      services: 5,
+      apis: 9,
+      databases: 3,
+      externalIntegrations: 1,
     },
     componentsList: {
       services: [
-        { name: 'analytics-pipeline', criticality: 3.0, type: 'pipeline' },
-        { name: 'bi-exporter', criticality: 2.5, type: 'worker' },
+        { name: 'order-service', criticality: 4.5, type: 'backend' },
+        { name: 'fulfillment-processor', criticality: 3.8, type: 'worker' },
       ],
-      endpoints: [{ method: 'GET', path: '/v1/reports/summary', consumers: 3 }],
-      tables: [{ name: 'legacy_user_events_2024', columnsCount: 30 }],
+      endpoints: [{ method: 'POST', path: '/v1/orders/checkout', consumers: 6 }],
+      tables: [{ name: 'order_items', columnsCount: 15 }],
     },
   },
 ];
@@ -192,52 +191,52 @@ const DEFAULT_REGISTERED_SYSTEMS: RegisteredSystem[] = [
 const PRODUCT_FLOW_STEPS = [
   {
     step: 1,
-    title: 'Connect System Source',
-    subtitle: 'Ingest GitHub repositories, PostgreSQL databases, OpenAPI specifications, or SQL schemas.',
-    icon: GitBranch,
-    engineDetail: 'Parses codebase structure, DDL statements, ORM definitions, and API route specifications.',
+    title: 'Connect System',
+    subtitle: 'Ingest a GitHub repo, SQL schema, OpenAPI spec, or service metadata file.',
+    icon: Upload,
+    engineDetail: 'ChangeShield parses repository structure, extracts service imports, FK constraints from SQL, and endpoint definitions from OpenAPI — building a normalized entity graph.',
   },
   {
     step: 2,
-    title: 'Analyze Dependency Graph',
-    subtitle: 'Automatically builds a multi-tier call graph mapping backend services, APIs, and databases.',
-    icon: Layers,
-    engineDetail: 'Constructs directed graph G=(V,E) where vertices V are components and edges E are dependencies.',
+    title: 'Analyze Dependencies',
+    subtitle: 'The engine parses all code imports, FK relationships, and API consumers to build the dependency graph.',
+    icon: Network,
+    engineDetail: 'Graph is built using a directed adjacency list. Each edge encodes dependency type (FK, import, HTTP call) and criticality weight.',
   },
   {
     step: 3,
-    title: 'Detect Proposed Change',
-    subtitle: 'Developer submits a DDL ALTER TABLE, column type mutation, or API endpoint contract change.',
-    icon: FileCode,
-    engineDetail: 'Parses AST diff of SQL or OpenAPI definitions to identify breaking vs non-breaking modifications.',
+    title: 'Select / Detect Change',
+    subtitle: 'Developer submits a DDL ALTER TABLE, config diff, or API endpoint modification.',
+    icon: FileText,
+    engineDetail: 'Changes are diffed against the current schema snapshot. DDL ALTER statements on indexed/FK columns are flagged as potentially breaking changes.',
   },
   {
     step: 4,
-    title: 'Trace Blast Radius Impact',
-    subtitle: 'Traverses upstream callers and downstream targets to identify every affected component.',
-    icon: Network,
-    engineDetail: 'Executes Breadth-First Search (BFS) and Transitive Closure traversal on dependency graph.',
+    title: 'Trace Impact',
+    subtitle: 'The engine traverses the graph and illuminates every upstream and downstream component affected.',
+    icon: ArrowRight,
+    engineDetail: 'BFS traversal starts at the changed node and follows all outgoing and incoming edges. Transitive dependencies are flagged up to the configured max hop depth.',
   },
   {
     step: 5,
-    title: 'Calculate Risk Score',
-    subtitle: 'Evaluates weighted risk rating (0.0 to 10.0) based on depth, node count, and exposure.',
-    icon: Sliders,
-    engineDetail: 'Applies weighted formula: Risk = f(Depth:30%, Count:25%, External:20%, Criticality:15%, Severity:10%).',
+    title: 'Risk Score',
+    subtitle: 'A weighted formula calculates Blast Radius Score (0–10) from depth, affected count, criticality, and external exposure.',
+    icon: Shield,
+    engineDetail: 'Risk = Σ(weight_i × factor_i). Scores ≥ 8.0 trigger automatic CI/CD PR block. Scores 6.0–7.9 require architectural review.',
   },
   {
     step: 6,
-    title: 'Generate Evidence Traces',
-    subtitle: 'Produces path proof, triggered guardrail policy violations, and affected service roster.',
-    icon: ShieldCheck,
-    engineDetail: 'Generates step-by-step traversal proof trees and evaluates active CI/CD gating rules.',
+    title: 'Evidence',
+    subtitle: 'Returns dependency traversal paths, triggered policy violations, and the complete list of affected services.',
+    icon: Sliders,
+    engineDetail: 'Evidence is persisted as a structured audit trail with timestamps, rule IDs, and dependency edge metadata for compliance reporting.',
   },
   {
     step: 7,
-    title: 'Provide Actionable Remediation',
-    subtitle: 'Delivers migration playbooks, dual-write Expand/Contract shims, and testing suites.',
+    title: 'Remediation',
+    subtitle: 'A safe migration playbook with step-by-step actions, testing recommendations, and rollout strategy.',
     icon: CheckCircle2,
-    engineDetail: 'Generates safe non-breaking migration strategies and targeting canary verification suites.',
+    engineDetail: 'Remediation plans are generated from rule templates mapped to the triggered policy violation type. Each playbook step is linked to a test recommendation.',
   },
 ];
 
@@ -380,83 +379,27 @@ export default function SystemsPage() {
         </div>
       )}
 
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-200 pb-6">
-        <div>
-          <h1 className="text-2xl font-semibold text-slate-900 tracking-tight flex items-center gap-2.5">
-            <Cpu className="w-6 h-6 text-slate-900" />
-            Software Systems & Ingested Architectures
-          </h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Multi-repository discovery, live DDL schema parsing, and topology synchronizations.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2.5 shrink-0">
-          <button
-            type="button"
-            onClick={handleReanalyzeAll}
-            className="px-3.5 py-2 bg-white border border-gray-300 hover:bg-gray-50 text-slate-900 rounded-md text-xs font-medium transition-colors flex items-center gap-2 cursor-pointer shadow-2xs focus:outline-none focus:ring-2 focus:ring-slate-900"
-          >
-            <RefreshCw className="w-3.5 h-3.5 text-gray-500" />
-            <span>Re-analyze All</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setIsImportModalOpen(true)}
-            className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-md text-xs font-medium transition-colors flex items-center gap-2 cursor-pointer shadow-2xs focus:outline-none focus:ring-2 focus:ring-slate-900"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Add / Import System</span>
-          </button>
-        </div>
-      </div>
-
-      {/* --- PROMINENT 7-STEP INTERACTIVE PRODUCT FLOW WALKTHROUGH --- */}
+      {/* SECTION A — "How ChangeShield Works" Interactive 7-Step Product Flow (TOP) */}
       <div className="bg-white border border-gray-200 rounded-xl p-6 flex flex-col gap-6 shadow-2xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-4">
           <div>
             <div className="flex items-center gap-2">
               <Shield className="w-5 h-5 text-indigo-600" />
               <h2 className="text-base font-bold text-slate-900 tracking-tight">
-                How ChangeShield Predicts Blast Radius
+                How ChangeShield Works
               </h2>
             </div>
             <p className="text-xs text-gray-500 mt-0.5">
               Interactive 7-step walkthrough of automated system ingestion, AST diff parsing, and risk gating.
             </p>
           </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              disabled={activeWalkthroughStep === 1}
-              onClick={() => setActiveWalkthroughStep((prev) => Math.max(prev - 1, 1))}
-              className="px-3 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 disabled:opacity-40 text-slate-900 rounded text-xs font-medium transition-colors cursor-pointer"
-            >
-              ← Prev Step
-            </button>
-            <button
-              type="button"
-              disabled={activeWalkthroughStep === 7}
-              onClick={() => setActiveWalkthroughStep((prev) => Math.min(prev + 1, 7))}
-              className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 disabled:opacity-40 text-white rounded text-xs font-medium transition-colors cursor-pointer"
-            >
-              Next Step →
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveWalkthroughStep(1)}
-              className="px-2.5 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded text-xs font-medium transition-colors cursor-pointer"
-            >
-              Reset
-            </button>
-          </div>
+          <span className="text-xs font-mono bg-slate-100 text-slate-700 px-2.5 py-1 rounded border border-gray-200 w-fit">
+            End-to-End Pipeline
+          </span>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {/* Left Vertical Step Navigator */}
+          {/* LEFT SIDEBAR — Vertical Numbered Step Pills (1-7) */}
           <div className="lg:col-span-4 flex flex-col gap-1.5 border-r-0 lg:border-r border-gray-100 pr-0 lg:pr-4">
             {PRODUCT_FLOW_STEPS.map((stepItem) => {
               const IconComp = stepItem.icon;
@@ -467,29 +410,30 @@ export default function SystemsPage() {
                   key={stepItem.step}
                   type="button"
                   onClick={() => setActiveWalkthroughStep(stepItem.step)}
-                  className={`w-full p-3 rounded-lg text-left flex items-center gap-3 transition-all cursor-pointer ${
+                  className={`w-full p-2.5 rounded-lg text-left flex items-center gap-3 transition-all cursor-pointer ${
                     isActive
-                      ? 'bg-slate-900 text-white font-semibold shadow-2xs'
-                      : 'bg-white hover:bg-gray-50 text-slate-700 border border-transparent hover:border-gray-200'
+                      ? 'bg-slate-900 text-white font-bold shadow-2xs'
+                      : 'bg-gray-100 hover:bg-gray-200 text-gray-700 border border-transparent'
                   }`}
                 >
                   <div
-                    className={`w-6 h-6 rounded-md font-bold text-xs flex items-center justify-center shrink-0 ${
-                      isActive ? 'bg-slate-800 text-white' : 'bg-gray-100 text-slate-700'
+                    className={`w-5 h-5 rounded-md font-bold text-[11px] flex items-center justify-center shrink-0 ${
+                      isActive ? 'bg-slate-800 text-white' : 'bg-gray-200 text-slate-700'
                     }`}
                   >
                     {stepItem.step}
                   </div>
-                  <div className="flex flex-col overflow-hidden">
+                  <div className="flex items-center gap-2 overflow-hidden flex-1">
+                    <IconComp className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-white' : 'text-gray-500'}`} />
                     <span className="text-xs truncate">{stepItem.title}</span>
                   </div>
-                  <IconComp className={`w-4 h-4 ml-auto shrink-0 ${isActive ? 'text-white' : 'text-gray-400'}`} />
+                  {isActive && <ChevronRight className="w-3.5 h-3.5 text-white shrink-0 ml-auto" />}
                 </button>
               );
             })}
           </div>
 
-          {/* Right Content Panel for Active Step */}
+          {/* RIGHT PANEL — Rich Content Card for Active Step */}
           <div className="lg:col-span-8 flex flex-col gap-4">
             <div className="flex flex-col gap-1 border-b border-gray-100 pb-3">
               <div className="flex items-center gap-2">
@@ -502,316 +446,493 @@ export default function SystemsPage() {
             </div>
 
             {/* STEP SPECIFIC VISUAL ILLUSTRATIONS */}
-            <div className="min-h-[220px] p-4 bg-gray-50 border border-gray-200 rounded-lg flex flex-col justify-center gap-4">
+            <div className="min-h-[240px] p-5 bg-gray-50/80 border border-gray-200 rounded-lg flex flex-col justify-center gap-4">
               {/* Step 1 Visual */}
               {activeWalkthroughStep === 1 && (
                 <div className="grid grid-cols-2 gap-3 text-xs">
-                  <div className="p-3 bg-white border border-gray-200 rounded flex items-center justify-between">
-                    <div className="flex items-center gap-2">
+                  <div className="p-3.5 bg-white border border-gray-200 rounded-lg flex items-center justify-between shadow-2xs">
+                    <div className="flex items-center gap-2.5">
                       <GitBranch className="w-4 h-4 text-slate-900" />
-                      <span className="font-semibold text-slate-900">GitHub App</span>
+                      <span className="font-semibold text-slate-900">GitHub Repository</span>
                     </div>
-                    <span className="text-[10px] bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded font-medium">Connected</span>
+                    <span className="text-[10px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded font-semibold border border-emerald-200">
+                      Connected
+                    </span>
                   </div>
 
-                  <div className="p-3 bg-white border border-gray-200 rounded flex items-center justify-between">
-                    <div className="flex items-center gap-2">
+                  <div className="p-3.5 bg-white border border-gray-200 rounded-lg flex items-center justify-between shadow-2xs">
+                    <div className="flex items-center gap-2.5">
                       <Database className="w-4 h-4 text-emerald-600" />
-                      <span className="font-semibold text-slate-900">PostgreSQL</span>
+                      <span className="font-semibold text-slate-900">PostgreSQL Database</span>
                     </div>
-                    <span className="text-[10px] bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded font-medium">Healthy</span>
+                    <span className="text-[10px] bg-blue-50 text-blue-700 px-2 py-0.5 rounded font-semibold border border-blue-200">
+                      Healthy
+                    </span>
                   </div>
 
-                  <div className="p-3 bg-white border border-gray-200 rounded flex items-center justify-between">
-                    <div className="flex items-center gap-2">
+                  <div className="p-3.5 bg-white border border-gray-200 rounded-lg flex items-center justify-between shadow-2xs">
+                    <div className="flex items-center gap-2.5">
                       <Globe className="w-4 h-4 text-sky-600" />
                       <span className="font-semibold text-slate-900">OpenAPI Spec</span>
                     </div>
-                    <span className="text-[10px] bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded font-medium">Parsed</span>
+                    <span className="text-[10px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded font-semibold border border-emerald-200">
+                      Connected
+                    </span>
                   </div>
 
-                  <div className="p-3 bg-white border border-gray-200 rounded flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <FileText className="w-4 h-4 text-purple-600" />
-                      <span className="font-semibold text-slate-900">SQL DDL File</span>
+                  <div className="p-3.5 bg-white border border-gray-200 rounded-lg flex items-center justify-between shadow-2xs">
+                    <div className="flex items-center gap-2.5">
+                      <FileText className="w-4 h-4 text-amber-600" />
+                      <span className="font-semibold text-slate-900">SQL Schema File</span>
                     </div>
-                    <span className="text-[10px] bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded font-medium">Uploaded</span>
+                    <span className="text-[10px] bg-amber-50 text-amber-700 px-2 py-0.5 rounded font-semibold border border-amber-200">
+                      Analyzing
+                    </span>
                   </div>
                 </div>
               )}
 
               {/* Step 2 Visual */}
               {activeWalkthroughStep === 2 && (
-                <div className="flex flex-col gap-3 items-center justify-center font-mono text-xs">
-                  <div className="flex items-center gap-4">
-                    <div className="px-3 py-2 bg-sky-50 border border-sky-200 text-sky-900 rounded font-bold">api-gateway</div>
-                    <ArrowRight className="w-4 h-4 text-gray-400" />
-                    <div className="px-3 py-2 bg-indigo-50 border border-indigo-200 text-indigo-900 rounded font-bold">auth-service</div>
+                <div className="flex flex-col gap-4 items-center justify-center font-mono text-xs">
+                  <div className="flex items-center gap-3">
+                    <div className="px-3.5 py-2 bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-lg font-bold flex items-center gap-1.5 shadow-2xs">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                      db-users
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-gray-400 shrink-0" />
+                    <div className="px-3.5 py-2 bg-indigo-50 border border-indigo-200 text-indigo-900 rounded-lg font-bold flex items-center gap-1.5 shadow-2xs">
+                      <span className="w-2 h-2 rounded-full bg-indigo-500" />
+                      user-service
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-gray-400 shrink-0" />
+                    <div className="px-3.5 py-2 bg-indigo-50 border border-indigo-200 text-indigo-900 rounded-lg font-bold flex items-center gap-1.5 shadow-2xs">
+                      <span className="w-2 h-2 rounded-full bg-indigo-500" />
+                      auth-service
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-gray-400 shrink-0" />
+                    <div className="px-3.5 py-2 bg-sky-50 border border-sky-200 text-sky-900 rounded-lg font-bold flex items-center gap-1.5 shadow-2xs">
+                      <span className="w-2 h-2 rounded-full bg-sky-500" />
+                      api-gateway
+                    </div>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <div className="px-3 py-2 bg-indigo-50 border border-indigo-200 text-indigo-900 rounded font-bold">user-service</div>
-                    <ArrowRight className="w-4 h-4 text-gray-400" />
-                    <div className="px-3 py-2 bg-emerald-50 border border-emerald-200 text-emerald-900 rounded font-bold">db-users (Tier-1)</div>
+
+                  <div className="flex items-center gap-2 text-[11px] text-gray-500 font-sans">
+                    <span className="w-2 h-2 rounded-full bg-indigo-500" />
+                    <span>auth-service also calls:</span>
+                    <span className="px-2 py-0.5 bg-indigo-50 border border-indigo-200 text-indigo-900 rounded font-mono font-semibold">
+                      order-service
+                    </span>
                   </div>
                 </div>
               )}
 
               {/* Step 3 Visual */}
               {activeWalkthroughStep === 3 && (
-                <div className="p-3 bg-slate-950 text-slate-100 font-mono text-xs rounded border border-slate-800 flex flex-col gap-1">
-                  <span className="text-[10px] text-slate-400 font-sans">Proposed Schema Migration DDL (v2_sql)</span>
-                  <p className="text-emerald-300 font-semibold">ALTER TABLE users ALTER COLUMN customer_id TYPE UUID;</p>
-                  <p className="text-slate-400 text-[11px] mt-1">// Type mutation from INT to UUID detected on primary key</p>
+                <div className="p-4 bg-slate-950 text-slate-100 font-mono text-xs rounded-lg border border-slate-800 flex gap-4">
+                  <div className="flex flex-col text-slate-600 select-none text-right pr-2 border-r border-slate-800 font-semibold">
+                    <span>1</span>
+                    <span>2</span>
+                    <span>3</span>
+                    <span>4</span>
+                    <span>5</span>
+                    <span>6</span>
+                    <span>7</span>
+                  </div>
+                  <div className="flex flex-col gap-0.5 overflow-x-auto">
+                    <span className="text-slate-500">// Proposed Schema Change</span>
+                    <span className="text-indigo-400 font-bold border-l-2 border-amber-400 pl-2">ALTER TABLE users</span>
+                    <span className="text-slate-200 border-l-2 border-amber-400 pl-2">  ALTER COLUMN customer_id</span>
+                    <span className="text-emerald-400 font-bold border-l-2 border-amber-400 pl-2">  TYPE UUID</span>
+                    <span className="text-slate-200 border-l-2 border-amber-400 pl-2">  USING customer_id::UUID;</span>
+                    <span></span>
+                    <span className="text-amber-400 font-semibold">// Breaking: changes primary key column type</span>
+                  </div>
                 </div>
               )}
 
               {/* Step 4 Visual */}
               {activeWalkthroughStep === 4 && (
-                <div className="flex flex-col gap-2 font-mono text-xs">
-                  <span className="text-xs font-semibold text-slate-900 font-sans">Impact Traversal Tree (3 Hops)</span>
-                  <div className="flex items-center gap-2 bg-white p-2.5 rounded border border-amber-200">
-                    <span className="px-2 py-0.5 bg-rose-50 text-rose-700 font-bold border border-rose-200 rounded">db-users</span>
-                    <span className="text-gray-400">→</span>
-                    <span className="px-2 py-0.5 bg-amber-50 text-amber-700 font-bold border border-amber-200 rounded animate-pulse">user-service</span>
-                    <span className="text-gray-400">→</span>
-                    <span className="px-2 py-0.5 bg-amber-50 text-amber-700 font-bold border border-amber-200 rounded">checkout-api</span>
+                <div className="flex flex-col gap-3 font-mono text-xs">
+                  <div className="flex items-center gap-2 overflow-x-auto p-3 bg-white rounded-lg border border-amber-200 shadow-2xs">
+                    <div className="px-3 py-1.5 bg-rose-50 text-rose-700 font-bold border border-rose-200 rounded ring-2 ring-rose-400/30 animate-pulse shrink-0">
+                      db-users
+                    </div>
+                    <span className="text-amber-600 font-sans text-[10px] font-bold">Hop 1 →</span>
+                    <div className="px-3 py-1.5 bg-rose-50 text-rose-700 font-bold border border-rose-200 rounded ring-2 ring-rose-400/30 animate-pulse shrink-0">
+                      user-service
+                    </div>
+                    <span className="text-amber-600 font-sans text-[10px] font-bold">Hop 2 →</span>
+                    <div className="px-3 py-1.5 bg-rose-50 text-rose-700 font-bold border border-rose-200 rounded ring-2 ring-rose-400/30 animate-pulse shrink-0">
+                      auth-service
+                    </div>
+                    <span className="text-amber-600 font-sans text-[10px] font-bold">Hop 3 →</span>
+                    <div className="px-3 py-1.5 bg-rose-50 text-rose-700 font-bold border border-rose-200 rounded ring-2 ring-rose-400/30 animate-pulse shrink-0">
+                      checkout-api
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end">
+                    <span className="text-xs font-semibold font-sans bg-amber-50 text-amber-800 px-2.5 py-1 rounded border border-amber-200">
+                      5 components impacted across 3 hops
+                    </span>
                   </div>
                 </div>
               )}
 
               {/* Step 5 Visual */}
               {activeWalkthroughStep === 5 && (
-                <div className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded text-xs">
-                  <div className="flex flex-col">
-                    <span className="text-gray-500">Calculated Blast Radius Risk</span>
-                    <span className="text-3xl font-bold font-mono text-rose-600 mt-0.5">8.6 / 10.0</span>
+                <div className="flex flex-col gap-4 p-4 bg-white border border-gray-200 rounded-lg text-xs">
+                  <div className="flex items-center justify-between">
+                    <div className="flex flex-col">
+                      <span className="text-5xl font-extrabold text-slate-900 tracking-tight font-mono">8.6 / 10.0</span>
+                      <span className="text-xs text-gray-500 font-medium mt-1">Weighted Blast Radius Score</span>
+                    </div>
+                    <span className="px-3 py-1 bg-rose-50 border border-rose-200 text-rose-700 font-extrabold rounded text-xs tracking-wider">
+                      CRITICAL RISK
+                    </span>
                   </div>
-                  <div className="flex flex-col items-end gap-1">
-                    <span className="px-3 py-1 bg-rose-50 border border-rose-200 text-rose-700 font-bold rounded">CRITICAL RISK</span>
-                    <span className="text-[11px] text-gray-500">Auto-Block Triggered</span>
+
+                  <div className="w-full bg-gray-100 h-2.5 rounded-full overflow-hidden">
+                    <div className="bg-rose-500 h-full w-[86%]" />
+                  </div>
+
+                  <div className="grid grid-cols-1 font-mono text-[11px] gap-1 pt-1 border-t border-gray-100">
+                    <div className="flex justify-between text-gray-600">
+                      <span className="font-sans">Dependency Depth</span>
+                      <span className="font-bold text-slate-900">30% | ████████░░</span>
+                    </div>
+                    <div className="flex justify-between text-gray-600">
+                      <span className="font-sans">Affected Nodes</span>
+                      <span className="font-bold text-slate-900">25% | ██████░░░░</span>
+                    </div>
+                    <div className="flex justify-between text-gray-600">
+                      <span className="font-sans">External Exposure</span>
+                      <span className="font-bold text-slate-900">20% | █████░░░░░</span>
+                    </div>
+                    <div className="flex justify-between text-gray-600">
+                      <span className="font-sans">Component Criticality</span>
+                      <span className="font-bold text-slate-900">15% | ████░░░░░░</span>
+                    </div>
+                    <div className="flex justify-between text-gray-600">
+                      <span className="font-sans">Change Severity</span>
+                      <span className="font-bold text-slate-900">10% | ██░░░░░░░░</span>
+                    </div>
                   </div>
                 </div>
               )}
 
               {/* Step 6 Visual */}
               {activeWalkthroughStep === 6 && (
-                <div className="flex flex-col gap-2 text-xs font-mono">
-                  <div className="p-2.5 bg-rose-50 border border-rose-200 text-rose-800 rounded flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
-                    <span>Triggered Policy: Block Dropped Columns on Tier-1 DB</span>
-                  </div>
-                  <div className="p-2.5 bg-amber-50 border border-amber-200 text-amber-800 rounded flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
-                    <span>Triggered Policy: Detect High Blast Radius Traversal (&gt;3 Hops)</span>
-                  </div>
+                <div className="p-4 bg-slate-950 text-slate-100 font-mono text-xs rounded-lg border border-slate-800 flex flex-col gap-2">
+                  <span className="text-emerald-400 font-bold font-sans">TRAVERSAL PATHS</span>
+                  <p className="text-slate-300">Trace #1: db-users → user-service → auth-service → checkout-api</p>
+                  <p className="text-slate-300">Trace #2: db-users → user-service → order-service → checkout-api</p>
+                  <p className="text-slate-300">Trace #3: db-users → user-service → analytics-pipeline</p>
+
+                  <span className="text-rose-400 font-bold font-sans mt-2">POLICY VIOLATIONS</span>
+                  <p className="text-rose-300">[BLOCK] Rule: Block Dropped Columns / Incompatible Type Alterations on Tier-1 DB</p>
+                  <p className="text-amber-300">[WARN]  Rule: High Blast Radius Traversal Detected (&gt;3 Hops)</p>
+
+                  <span className="text-amber-400 font-bold font-sans mt-2">IMPACTED SERVICES</span>
+                  <p className="text-slate-200">user-service | auth-service | order-service | checkout-api | analytics-pipeline</p>
                 </div>
               )}
 
               {/* Step 7 Visual */}
               {activeWalkthroughStep === 7 && (
-                <div className="flex flex-col gap-2 text-xs">
-                  <div className="p-2.5 bg-white border border-gray-200 rounded flex items-center gap-2">
-                    <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <span className="font-semibold text-slate-900">Apply Expand/Contract dual-write schema migration</span>
+                <div className="flex flex-col gap-3 text-xs">
+                  <div className="p-3 bg-white border border-gray-200 rounded-lg flex flex-col gap-1">
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-slate-900">Step 1: Apply Dual-Write Expand/Contract Schema Shim</span>
+                      <span className="px-2 py-0.5 bg-slate-100 text-slate-700 text-[10px] font-mono rounded border border-gray-200">
+                        Deploy Compatibility Migration
+                      </span>
+                    </div>
+                    <p className="text-gray-500 text-[11px]">Add customer_id_uuid alongside customer_id without altering original column type.</p>
                   </div>
-                  <div className="p-2.5 bg-white border border-gray-200 rounded flex items-center gap-2">
-                    <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <span className="font-semibold text-slate-900">Sync downstream user-service and order-service ORMs</span>
+
+                  <div className="p-3 bg-white border border-gray-200 rounded-lg flex flex-col gap-1">
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-slate-900">Step 2: Update Downstream ORM Models</span>
+                      <span className="px-2 py-0.5 bg-slate-100 text-slate-700 text-[10px] font-mono rounded border border-gray-200">
+                        Sync Microservice Models
+                      </span>
+                    </div>
+                    <p className="text-gray-500 text-[11px]">Update user-service and order-service query adapters to accept stringified UUIDs.</p>
+                  </div>
+
+                  <div className="p-3 bg-white border border-gray-200 rounded-lg flex flex-col gap-1">
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-slate-900">Step 3: API Gateway Deprecation Header</span>
+                      <span className="px-2 py-0.5 bg-slate-100 text-slate-700 text-[10px] font-mono rounded border border-gray-200">
+                        Deploy Gateway Facade
+                      </span>
+                    </div>
+                    <p className="text-gray-500 text-[11px]">Inject Sunset HTTP headers on legacy INT endpoints prior to cutover.</p>
+                  </div>
+
+                  <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-900 flex flex-col gap-1">
+                    <span className="font-semibold flex items-center gap-1.5">
+                      <ShieldCheck className="w-4 h-4 text-emerald-600" /> Recommended Tests:
+                    </span>
+                    <ul className="list-disc pl-5 text-[11px] text-emerald-800 space-y-0.5">
+                      <li>Run integration test suite across order-service and auth-service.</li>
+                      <li>Execute staging dual-write canary regression test.</li>
+                      <li>Verify API gateway contract validations for UUID request payload headers.</li>
+                    </ul>
                   </div>
                 </div>
               )}
             </div>
 
             {/* Technical Detail Callout */}
-            <div className="p-3 bg-slate-950 text-slate-200 rounded-lg text-xs font-mono border border-slate-800 flex items-start gap-2.5">
+            <div className="p-3.5 bg-slate-950 text-slate-200 rounded-lg text-xs font-mono border border-slate-800 flex items-start gap-2.5 shadow-2xs">
               <Cpu className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
               <div>
                 <span className="font-semibold text-white font-sans">Engine Internal Action:</span>{' '}
                 <span className="text-slate-300">{currentWalkthroughData.engineDetail}</span>
               </div>
             </div>
-          </div>
-        </div>
-      </div>
 
-      {/* Scope KPI Metric Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white border border-gray-200 rounded-lg p-5 flex flex-col justify-between shadow-2xs">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-gray-500">Registered Architectures</span>
-            <div className="p-2 bg-indigo-50 text-indigo-600 rounded-md border border-indigo-100">
-              <Cpu className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-4 flex items-baseline justify-between">
-            <span className="text-3xl font-semibold text-slate-900 tracking-tight">
-              {totalScope.registeredCount} Systems
-            </span>
-            <span className="text-xs text-gray-500">Active Sync</span>
-          </div>
-        </div>
+            {/* NAVIGATION CONTROLS BELOW WALKTHROUGH */}
+            <div className="pt-2 flex items-center justify-between text-xs">
+              <button
+                type="button"
+                disabled={activeWalkthroughStep === 1}
+                onClick={() => setActiveWalkthroughStep((prev) => Math.max(prev - 1, 1))}
+                className="px-3.5 py-2 bg-white border border-gray-300 hover:bg-gray-50 disabled:opacity-40 text-slate-900 rounded font-medium transition-colors cursor-pointer"
+              >
+                ← Previous
+              </button>
 
-        <div className="bg-white border border-gray-200 rounded-lg p-5 flex flex-col justify-between shadow-2xs">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-gray-500">Discovered Services</span>
-            <div className="p-2 bg-purple-50 text-purple-600 rounded-md border border-purple-100">
-              <Server className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-4 flex items-baseline justify-between">
-            <span className="text-3xl font-semibold text-slate-900 tracking-tight">
-              {totalScope.services} Services
-            </span>
-            <span className="text-xs text-gray-500">Microservices</span>
-          </div>
-        </div>
-
-        <div className="bg-white border border-gray-200 rounded-lg p-5 flex flex-col justify-between shadow-2xs">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-gray-500">Monitored Endpoints</span>
-            <div className="p-2 bg-sky-50 text-sky-600 rounded-md border border-sky-100">
-              <Globe className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-4 flex items-baseline justify-between">
-            <span className="text-3xl font-semibold text-slate-900 tracking-tight">
-              {totalScope.apis} APIs
-            </span>
-            <span className="text-xs text-gray-500">HTTP/REST</span>
-          </div>
-        </div>
-
-        <div className="bg-white border border-gray-200 rounded-lg p-5 flex flex-col justify-between shadow-2xs">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-gray-500">Managed Databases</span>
-            <div className="p-2 bg-emerald-50 text-emerald-600 rounded-md border border-emerald-100">
-              <Database className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-4 flex items-baseline justify-between">
-            <span className="text-3xl font-semibold text-slate-900 tracking-tight">
-              {totalScope.databases} DBs
-            </span>
-            <span className="text-xs text-gray-500">Relational &amp; Lake</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Systems Registry Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {systems.map((sys) => (
-          <div
-            key={sys.id}
-            className="bg-white border border-gray-200 rounded-lg p-6 flex flex-col justify-between gap-5 shadow-2xs hover:border-gray-300 transition-colors"
-          >
-            {/* Top Card Header */}
-            <div className="flex items-start justify-between gap-3 border-b border-gray-100 pb-4">
-              <div className="flex flex-col gap-1">
-                <div className="flex items-center gap-2">
-                  <h3 className="text-base font-semibold text-slate-900 tracking-tight">
-                    {sys.name}
-                  </h3>
-                  {sys.status === 'Healthy' && (
-                    <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                      <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Healthy
-                    </span>
-                  )}
-                  {sys.status === 'Warning' && (
-                    <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-                      <AlertTriangle className="w-3 h-3 text-amber-600" /> Warning
-                    </span>
-                  )}
-                  {sys.status === 'Analyzing' && (
-                    <span className="inline-flex items-center gap-1 text-[11px] font-medium text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200 animate-pulse">
-                      <RefreshCw className="w-3 h-3 animate-spin text-indigo-600" /> Syncing...
-                    </span>
-                  )}
-                </div>
-
-                <span className="text-xs text-gray-500 font-mono flex items-center gap-1">
-                  <GitBranch className="w-3 h-3 text-gray-400" />
-                  {sys.sourceLabel}
+              <div className="flex items-center gap-3">
+                <span className="font-semibold text-slate-700">
+                  Step {activeWalkthroughStep} of 7
                 </span>
-              </div>
-
-              <div className="flex items-center gap-1">
                 <button
                   type="button"
-                  onClick={() => handleReanalyzeSingle(sys.id, sys.name)}
-                  title="Re-analyze System Topology"
-                  className="p-1.5 text-gray-400 hover:text-slate-900 hover:bg-gray-100 rounded transition-colors cursor-pointer"
+                  onClick={() => setActiveWalkthroughStep(1)}
+                  className="text-gray-500 hover:text-slate-900 underline underline-offset-2 cursor-pointer"
                 >
-                  <RefreshCw className="w-4 h-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleDeleteSystem(sys.id, sys.name)}
-                  title="Unlink System"
-                  className="p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors cursor-pointer"
-                >
-                  <Trash2 className="w-4 h-4" />
+                  Start Over
                 </button>
               </div>
-            </div>
 
-            {/* Commit / Source Snippet */}
-            {sys.lastCommitMessage && (
-              <div className="p-3 bg-gray-50 rounded border border-gray-200/80 text-xs flex flex-col gap-1">
-                <div className="flex items-center justify-between text-[11px] text-gray-500 font-mono">
-                  <span>SHA: {sys.lastCommitSha}</span>
-                  <span>Branch: {sys.branch}</span>
-                </div>
-                <p className="text-slate-800 font-medium truncate">&quot;{sys.lastCommitMessage}&quot;</p>
-              </div>
-            )}
-
-            {/* Discovered Component Metrics Grid */}
-            <div className="grid grid-cols-4 gap-2 text-center text-xs">
-              <div className="p-2.5 bg-gray-50 rounded border border-gray-200/60 flex flex-col">
-                <span className="text-base font-bold text-slate-900">{sys.metrics.services}</span>
-                <span className="text-[10px] font-medium text-gray-500">Services</span>
-              </div>
-              <div className="p-2.5 bg-gray-50 rounded border border-gray-200/60 flex flex-col">
-                <span className="text-base font-bold text-slate-900">{sys.metrics.apis}</span>
-                <span className="text-[10px] font-medium text-gray-500">APIs</span>
-              </div>
-              <div className="p-2.5 bg-gray-50 rounded border border-gray-200/60 flex flex-col">
-                <span className="text-base font-bold text-slate-900">{sys.metrics.databases}</span>
-                <span className="text-[10px] font-medium text-gray-500">DBs</span>
-              </div>
-              <div className="p-2.5 bg-gray-50 rounded border border-gray-200/60 flex flex-col">
-                <span className="text-base font-bold text-slate-900">{sys.metrics.externalIntegrations}</span>
-                <span className="text-[10px] font-medium text-gray-500">External</span>
-              </div>
-            </div>
-
-            {/* Bottom Actions Footer */}
-            <div className="pt-2 flex items-center justify-between border-t border-gray-100 text-xs text-gray-500">
-              <span className="flex items-center gap-1">
-                <Clock className="w-3 h-3 text-gray-400" />
-                Synced {sys.lastAnalyzed}
-              </span>
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setInspectRecordSystem(sys)}
-                  className="px-3 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-slate-900 rounded font-medium transition-colors cursor-pointer"
-                >
-                  Components
-                </button>
-
-                <Link
-                  href="/dependencies"
-                  className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded font-medium transition-colors flex items-center gap-1"
-                >
-                  <span>Graph</span>
-                  <ChevronRight className="w-3.5 h-3.5" />
-                </Link>
-              </div>
+              <button
+                type="button"
+                disabled={activeWalkthroughStep === 7}
+                onClick={() => setActiveWalkthroughStep((prev) => Math.min(prev + 1, 7))}
+                className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 disabled:opacity-40 text-white rounded font-medium transition-colors cursor-pointer"
+              >
+                Next →
+              </button>
             </div>
           </div>
-        ))}
+        </div>
+      </div>
+
+      {/* SECTION B — Connected Systems & Architecture Sources */}
+      <div className="flex flex-col gap-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-200 pb-4">
+          <div>
+            <h2 className="text-lg font-bold text-slate-900 tracking-tight">
+              Connected Systems & Architecture Sources
+            </h2>
+            <p className="text-xs text-gray-500 mt-0.5">
+              Ingested software repositories, databases, and API specs monitored by ChangeShield.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setIsImportModalOpen(true)}
+            className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-md text-xs font-medium transition-colors flex items-center gap-2 cursor-pointer shadow-2xs"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Add System</span>
+          </button>
+        </div>
+
+        {/* Scope KPI Metric Summary Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-white border border-gray-200 rounded-lg p-5 flex flex-col justify-between shadow-2xs">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-gray-500">Registered Architectures</span>
+              <div className="p-2 bg-indigo-50 text-indigo-600 rounded-md border border-indigo-100">
+                <Cpu className="w-4 h-4" />
+              </div>
+            </div>
+            <div className="mt-4 flex items-baseline justify-between">
+              <span className="text-3xl font-semibold text-slate-900 tracking-tight">
+                {totalScope.registeredCount} Systems
+              </span>
+              <span className="text-xs text-gray-500">Active Sync</span>
+            </div>
+          </div>
+
+          <div className="bg-white border border-gray-200 rounded-lg p-5 flex flex-col justify-between shadow-2xs">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-gray-500">Discovered Services</span>
+              <div className="p-2 bg-purple-50 text-purple-600 rounded-md border border-purple-100">
+                <Server className="w-4 h-4" />
+              </div>
+            </div>
+            <div className="mt-4 flex items-baseline justify-between">
+              <span className="text-3xl font-semibold text-slate-900 tracking-tight">
+                {totalScope.services} Services
+              </span>
+              <span className="text-xs text-gray-500">Microservices</span>
+            </div>
+          </div>
+
+          <div className="bg-white border border-gray-200 rounded-lg p-5 flex flex-col justify-between shadow-2xs">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-gray-500">Monitored Endpoints</span>
+              <div className="p-2 bg-sky-50 text-sky-600 rounded-md border border-sky-100">
+                <Globe className="w-4 h-4" />
+              </div>
+            </div>
+            <div className="mt-4 flex items-baseline justify-between">
+              <span className="text-3xl font-semibold text-slate-900 tracking-tight">
+                {totalScope.apis} APIs
+              </span>
+              <span className="text-xs text-gray-500">HTTP/REST</span>
+            </div>
+          </div>
+
+          <div className="bg-white border border-gray-200 rounded-lg p-5 flex flex-col justify-between shadow-2xs">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-gray-500">Managed Databases</span>
+              <div className="p-2 bg-emerald-50 text-emerald-600 rounded-md border border-emerald-100">
+                <Database className="w-4 h-4" />
+              </div>
+            </div>
+            <div className="mt-4 flex items-baseline justify-between">
+              <span className="text-3xl font-semibold text-slate-900 tracking-tight">
+                {totalScope.databases} DBs
+              </span>
+              <span className="text-xs text-gray-500">Relational & Lake</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Systems Registry Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {systems.map((sys) => (
+            <div
+              key={sys.id}
+              className="bg-white border border-gray-200 rounded-lg p-6 flex flex-col justify-between gap-5 shadow-2xs hover:border-gray-300 transition-colors"
+            >
+              {/* Top Card Header */}
+              <div className="flex items-start justify-between gap-3 border-b border-gray-100 pb-4">
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-base font-semibold text-slate-900 tracking-tight">
+                      {sys.name}
+                    </h3>
+                    {sys.status === 'Healthy' && (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Healthy
+                      </span>
+                    )}
+                    {sys.status === 'Warning' && (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                        <AlertTriangle className="w-3 h-3 text-amber-600" /> Warning
+                      </span>
+                    )}
+                    {sys.status === 'Analyzing' && (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-medium text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200 animate-pulse">
+                        <RefreshCw className="w-3 h-3 animate-spin text-indigo-600" /> Syncing...
+                      </span>
+                    )}
+                  </div>
+
+                  <span className="text-xs text-gray-500 font-mono flex items-center gap-1">
+                    <GitBranch className="w-3 h-3 text-gray-400" />
+                    {sys.sourceLabel}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => handleReanalyzeSingle(sys.id, sys.name)}
+                    title="Re-analyze System Topology"
+                    className="p-1.5 text-gray-400 hover:text-slate-900 hover:bg-gray-100 rounded transition-colors cursor-pointer"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteSystem(sys.id, sys.name)}
+                    title="Unlink System"
+                    className="p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors cursor-pointer"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Commit / Source Snippet */}
+              {sys.lastCommitMessage && (
+                <div className="p-3 bg-gray-50 rounded border border-gray-200/80 text-xs flex flex-col gap-1">
+                  <div className="flex items-center justify-between text-[11px] text-gray-500 font-mono">
+                    <span>SHA: {sys.lastCommitSha}</span>
+                    <span>Branch: {sys.branch}</span>
+                  </div>
+                  <p className="text-slate-800 font-medium truncate">&quot;{sys.lastCommitMessage}&quot;</p>
+                </div>
+              )}
+
+              {/* Discovered Component Metrics Grid */}
+              <div className="grid grid-cols-4 gap-2 text-center text-xs">
+                <div className="p-2.5 bg-gray-50 rounded border border-gray-200/60 flex flex-col">
+                  <span className="text-base font-bold text-slate-900">{sys.metrics.services}</span>
+                  <span className="text-[10px] font-medium text-gray-500">Services</span>
+                </div>
+                <div className="p-2.5 bg-gray-50 rounded border border-gray-200/60 flex flex-col">
+                  <span className="text-base font-bold text-slate-900">{sys.metrics.apis}</span>
+                  <span className="text-[10px] font-medium text-gray-500">APIs</span>
+                </div>
+                <div className="p-2.5 bg-gray-50 rounded border border-gray-200/60 flex flex-col">
+                  <span className="text-base font-bold text-slate-900">{sys.metrics.databases}</span>
+                  <span className="text-[10px] font-medium text-gray-500">DBs</span>
+                </div>
+                <div className="p-2.5 bg-gray-50 rounded border border-gray-200/60 flex flex-col">
+                  <span className="text-base font-bold text-slate-900">{sys.metrics.externalIntegrations}</span>
+                  <span className="text-[10px] font-medium text-gray-500">External</span>
+                </div>
+              </div>
+
+              {/* Bottom Actions Footer */}
+              <div className="pt-2 flex items-center justify-between border-t border-gray-100 text-xs text-gray-500">
+                <span className="flex items-center gap-1">
+                  <Clock className="w-3 h-3 text-gray-400" />
+                  Synced {sys.lastAnalyzed}
+                </span>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setInspectRecordSystem(sys)}
+                    className="px-3 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-slate-900 rounded font-medium transition-colors cursor-pointer"
+                  >
+                    View Components
+                  </button>
+
+                  <Link
+                    href="/dependencies"
+                    className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded font-medium transition-colors flex items-center gap-1"
+                  >
+                    <span>Graph</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Multi-Modal Ingestion Dialog */}
@@ -823,7 +944,7 @@ export default function SystemsPage() {
               <button
                 type="button"
                 onClick={() => setIsImportModalOpen(false)}
-                className="text-gray-400 hover:text-slate-900 p-1 rounded-md cursor-pointer"
+                className="text-gray-400 hover:text-slate-900 p-1 rounded-md"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -895,7 +1016,7 @@ export default function SystemsPage() {
                 <button
                   type="button"
                   onClick={() => setIsImportModalOpen(false)}
-                  className="px-4 py-2 bg-white border border-gray-300 hover:bg-gray-50 text-slate-900 rounded-md font-medium transition-colors cursor-pointer"
+                  className="px-4 py-2 bg-white border border-gray-300 hover:bg-gray-50 text-slate-900 rounded-md font-medium transition-colors"
                 >
                   Cancel
                 </button>
@@ -924,7 +1045,7 @@ export default function SystemsPage() {
               <button
                 type="button"
                 onClick={() => setInspectRecordSystem(null)}
-                className="p-1 text-gray-400 hover:text-slate-900 rounded cursor-pointer"
+                className="p-1 text-gray-400 hover:text-slate-900 rounded"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -981,7 +1102,7 @@ export default function SystemsPage() {
               <button
                 type="button"
                 onClick={() => setInspectRecordSystem(null)}
-                className="px-4 py-2 bg-slate-900 text-white rounded text-xs font-medium cursor-pointer"
+                className="px-4 py-2 bg-slate-900 text-white rounded text-xs font-medium"
               >
                 Close Inspector
               </button>
