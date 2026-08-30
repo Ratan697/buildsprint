@@ -11,7 +11,6 @@ import {
   Network,
   Plus,
   RefreshCw,
-  ExternalLink,
   Trash2,
   CheckCircle2,
   AlertTriangle,
@@ -21,15 +20,20 @@ import {
   X,
   ChevronRight,
   Sparkles,
-  UploadCloud,
   FileText,
   ShieldCheck,
+  ArrowRight,
+  Shield,
+  Sliders,
+  Check,
+  Layers,
 } from 'lucide-react';
 import SourceSelector from '@/components/systems/SourceSelector';
 import FileUpload from '@/components/systems/FileUpload';
 import { SourceType } from '@/lib/types';
 import { checkBackendHealth } from '@/lib/api';
 
+// --- Types for Systems Management ---
 export type SystemSourceType = 'github' | 'postgres' | 'openapi' | 'file';
 export type IngestStatus = 'Healthy' | 'Warning' | 'Analyzing';
 
@@ -184,9 +188,65 @@ const DEFAULT_REGISTERED_SYSTEMS: RegisteredSystem[] = [
   },
 ];
 
+// --- 7-Step Walkthrough Data ---
+const PRODUCT_FLOW_STEPS = [
+  {
+    step: 1,
+    title: 'Connect System Source',
+    subtitle: 'Ingest GitHub repositories, PostgreSQL databases, OpenAPI specifications, or SQL schemas.',
+    icon: GitBranch,
+    engineDetail: 'Parses codebase structure, DDL statements, ORM definitions, and API route specifications.',
+  },
+  {
+    step: 2,
+    title: 'Analyze Dependency Graph',
+    subtitle: 'Automatically builds a multi-tier call graph mapping backend services, APIs, and databases.',
+    icon: Layers,
+    engineDetail: 'Constructs directed graph G=(V,E) where vertices V are components and edges E are dependencies.',
+  },
+  {
+    step: 3,
+    title: 'Detect Proposed Change',
+    subtitle: 'Developer submits a DDL ALTER TABLE, column type mutation, or API endpoint contract change.',
+    icon: FileCode,
+    engineDetail: 'Parses AST diff of SQL or OpenAPI definitions to identify breaking vs non-breaking modifications.',
+  },
+  {
+    step: 4,
+    title: 'Trace Blast Radius Impact',
+    subtitle: 'Traverses upstream callers and downstream targets to identify every affected component.',
+    icon: Network,
+    engineDetail: 'Executes Breadth-First Search (BFS) and Transitive Closure traversal on dependency graph.',
+  },
+  {
+    step: 5,
+    title: 'Calculate Risk Score',
+    subtitle: 'Evaluates weighted risk rating (0.0 to 10.0) based on depth, node count, and exposure.',
+    icon: Sliders,
+    engineDetail: 'Applies weighted formula: Risk = f(Depth:30%, Count:25%, External:20%, Criticality:15%, Severity:10%).',
+  },
+  {
+    step: 6,
+    title: 'Generate Evidence Traces',
+    subtitle: 'Produces path proof, triggered guardrail policy violations, and affected service roster.',
+    icon: ShieldCheck,
+    engineDetail: 'Generates step-by-step traversal proof trees and evaluates active CI/CD gating rules.',
+  },
+  {
+    step: 7,
+    title: 'Provide Actionable Remediation',
+    subtitle: 'Delivers migration playbooks, dual-write Expand/Contract shims, and testing suites.',
+    icon: CheckCircle2,
+    engineDetail: 'Generates safe non-breaking migration strategies and targeting canary verification suites.',
+  },
+];
+
 export default function SystemsPage() {
   const [systems, setSystems] = useState<RegisteredSystem[]>(DEFAULT_REGISTERED_SYSTEMS);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Walkthrough Active Step State
+  const [activeWalkthroughStep, setActiveWalkthroughStep] = useState(1);
 
   // Inspector Drawer State
   const [inspectSystem, setInspectRecordSystem] = useState<RegisteredSystem | null>(null);
@@ -196,9 +256,8 @@ export default function SystemsPage() {
   const [selectedSourceType, setSelectedSourceType] = useState<SourceType>('github');
   const [inputName, setInputName] = useState('');
   const [repoUrl, setRepoUrl] = useState('https://github.com/org/new-service');
-  const [postgresUri, setPostgresUri] = useState('postgresql://user:pass@localhost:5432/main_db');
   const [rawSql, setRawSql] = useState('CREATE TABLE example (id INT PRIMARY KEY);');
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [, setUploadedFile] = useState<File | null>(null);
   const [isSubmittingImport, setIsSubmittingImport] = useState(false);
 
   const showToast = (msg: string) => {
@@ -220,6 +279,11 @@ export default function SystemsPage() {
 
     return { registeredCount: systems.length, services, apis, databases };
   }, [systems]);
+
+  const currentWalkthroughData = useMemo(
+    () => PRODUCT_FLOW_STEPS.find((s) => s.step === activeWalkthroughStep) || PRODUCT_FLOW_STEPS[0],
+    [activeWalkthroughStep]
+  );
 
   const handleReanalyzeSingle = (id: string, name: string) => {
     setSystems((prev) =>
@@ -349,6 +413,227 @@ export default function SystemsPage() {
         </div>
       </div>
 
+      {/* --- PROMINENT 7-STEP INTERACTIVE PRODUCT FLOW WALKTHROUGH --- */}
+      <div className="bg-white border border-gray-200 rounded-xl p-6 flex flex-col gap-6 shadow-2xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <Shield className="w-5 h-5 text-indigo-600" />
+              <h2 className="text-base font-bold text-slate-900 tracking-tight">
+                How ChangeShield Predicts Blast Radius
+              </h2>
+            </div>
+            <p className="text-xs text-gray-500 mt-0.5">
+              Interactive 7-step walkthrough of automated system ingestion, AST diff parsing, and risk gating.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={activeWalkthroughStep === 1}
+              onClick={() => setActiveWalkthroughStep((prev) => Math.max(prev - 1, 1))}
+              className="px-3 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 disabled:opacity-40 text-slate-900 rounded text-xs font-medium transition-colors cursor-pointer"
+            >
+              ← Prev Step
+            </button>
+            <button
+              type="button"
+              disabled={activeWalkthroughStep === 7}
+              onClick={() => setActiveWalkthroughStep((prev) => Math.min(prev + 1, 7))}
+              className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 disabled:opacity-40 text-white rounded text-xs font-medium transition-colors cursor-pointer"
+            >
+              Next Step →
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveWalkthroughStep(1)}
+              className="px-2.5 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded text-xs font-medium transition-colors cursor-pointer"
+            >
+              Reset
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          {/* Left Vertical Step Navigator */}
+          <div className="lg:col-span-4 flex flex-col gap-1.5 border-r-0 lg:border-r border-gray-100 pr-0 lg:pr-4">
+            {PRODUCT_FLOW_STEPS.map((stepItem) => {
+              const IconComp = stepItem.icon;
+              const isActive = activeWalkthroughStep === stepItem.step;
+
+              return (
+                <button
+                  key={stepItem.step}
+                  type="button"
+                  onClick={() => setActiveWalkthroughStep(stepItem.step)}
+                  className={`w-full p-3 rounded-lg text-left flex items-center gap-3 transition-all cursor-pointer ${
+                    isActive
+                      ? 'bg-slate-900 text-white font-semibold shadow-2xs'
+                      : 'bg-white hover:bg-gray-50 text-slate-700 border border-transparent hover:border-gray-200'
+                  }`}
+                >
+                  <div
+                    className={`w-6 h-6 rounded-md font-bold text-xs flex items-center justify-center shrink-0 ${
+                      isActive ? 'bg-slate-800 text-white' : 'bg-gray-100 text-slate-700'
+                    }`}
+                  >
+                    {stepItem.step}
+                  </div>
+                  <div className="flex flex-col overflow-hidden">
+                    <span className="text-xs truncate">{stepItem.title}</span>
+                  </div>
+                  <IconComp className={`w-4 h-4 ml-auto shrink-0 ${isActive ? 'text-white' : 'text-gray-400'}`} />
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Right Content Panel for Active Step */}
+          <div className="lg:col-span-8 flex flex-col gap-4">
+            <div className="flex flex-col gap-1 border-b border-gray-100 pb-3">
+              <div className="flex items-center gap-2">
+                <span className="px-2 py-0.5 bg-slate-900 text-white text-[10px] font-bold rounded">
+                  STEP {currentWalkthroughData.step} OF 7
+                </span>
+                <h3 className="text-base font-bold text-slate-900">{currentWalkthroughData.title}</h3>
+              </div>
+              <p className="text-xs text-gray-600">{currentWalkthroughData.subtitle}</p>
+            </div>
+
+            {/* STEP SPECIFIC VISUAL ILLUSTRATIONS */}
+            <div className="min-h-[220px] p-4 bg-gray-50 border border-gray-200 rounded-lg flex flex-col justify-center gap-4">
+              {/* Step 1 Visual */}
+              {activeWalkthroughStep === 1 && (
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div className="p-3 bg-white border border-gray-200 rounded flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <GitBranch className="w-4 h-4 text-slate-900" />
+                      <span className="font-semibold text-slate-900">GitHub App</span>
+                    </div>
+                    <span className="text-[10px] bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded font-medium">Connected</span>
+                  </div>
+
+                  <div className="p-3 bg-white border border-gray-200 rounded flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Database className="w-4 h-4 text-emerald-600" />
+                      <span className="font-semibold text-slate-900">PostgreSQL</span>
+                    </div>
+                    <span className="text-[10px] bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded font-medium">Healthy</span>
+                  </div>
+
+                  <div className="p-3 bg-white border border-gray-200 rounded flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Globe className="w-4 h-4 text-sky-600" />
+                      <span className="font-semibold text-slate-900">OpenAPI Spec</span>
+                    </div>
+                    <span className="text-[10px] bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded font-medium">Parsed</span>
+                  </div>
+
+                  <div className="p-3 bg-white border border-gray-200 rounded flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-purple-600" />
+                      <span className="font-semibold text-slate-900">SQL DDL File</span>
+                    </div>
+                    <span className="text-[10px] bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded font-medium">Uploaded</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 2 Visual */}
+              {activeWalkthroughStep === 2 && (
+                <div className="flex flex-col gap-3 items-center justify-center font-mono text-xs">
+                  <div className="flex items-center gap-4">
+                    <div className="px-3 py-2 bg-sky-50 border border-sky-200 text-sky-900 rounded font-bold">api-gateway</div>
+                    <ArrowRight className="w-4 h-4 text-gray-400" />
+                    <div className="px-3 py-2 bg-indigo-50 border border-indigo-200 text-indigo-900 rounded font-bold">auth-service</div>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="px-3 py-2 bg-indigo-50 border border-indigo-200 text-indigo-900 rounded font-bold">user-service</div>
+                    <ArrowRight className="w-4 h-4 text-gray-400" />
+                    <div className="px-3 py-2 bg-emerald-50 border border-emerald-200 text-emerald-900 rounded font-bold">db-users (Tier-1)</div>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 3 Visual */}
+              {activeWalkthroughStep === 3 && (
+                <div className="p-3 bg-slate-950 text-slate-100 font-mono text-xs rounded border border-slate-800 flex flex-col gap-1">
+                  <span className="text-[10px] text-slate-400 font-sans">Proposed Schema Migration DDL (v2_sql)</span>
+                  <p className="text-emerald-300 font-semibold">ALTER TABLE users ALTER COLUMN customer_id TYPE UUID;</p>
+                  <p className="text-slate-400 text-[11px] mt-1">// Type mutation from INT to UUID detected on primary key</p>
+                </div>
+              )}
+
+              {/* Step 4 Visual */}
+              {activeWalkthroughStep === 4 && (
+                <div className="flex flex-col gap-2 font-mono text-xs">
+                  <span className="text-xs font-semibold text-slate-900 font-sans">Impact Traversal Tree (3 Hops)</span>
+                  <div className="flex items-center gap-2 bg-white p-2.5 rounded border border-amber-200">
+                    <span className="px-2 py-0.5 bg-rose-50 text-rose-700 font-bold border border-rose-200 rounded">db-users</span>
+                    <span className="text-gray-400">→</span>
+                    <span className="px-2 py-0.5 bg-amber-50 text-amber-700 font-bold border border-amber-200 rounded animate-pulse">user-service</span>
+                    <span className="text-gray-400">→</span>
+                    <span className="px-2 py-0.5 bg-amber-50 text-amber-700 font-bold border border-amber-200 rounded">checkout-api</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 5 Visual */}
+              {activeWalkthroughStep === 5 && (
+                <div className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded text-xs">
+                  <div className="flex flex-col">
+                    <span className="text-gray-500">Calculated Blast Radius Risk</span>
+                    <span className="text-3xl font-bold font-mono text-rose-600 mt-0.5">8.6 / 10.0</span>
+                  </div>
+                  <div className="flex flex-col items-end gap-1">
+                    <span className="px-3 py-1 bg-rose-50 border border-rose-200 text-rose-700 font-bold rounded">CRITICAL RISK</span>
+                    <span className="text-[11px] text-gray-500">Auto-Block Triggered</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 6 Visual */}
+              {activeWalkthroughStep === 6 && (
+                <div className="flex flex-col gap-2 text-xs font-mono">
+                  <div className="p-2.5 bg-rose-50 border border-rose-200 text-rose-800 rounded flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                    <span>Triggered Policy: Block Dropped Columns on Tier-1 DB</span>
+                  </div>
+                  <div className="p-2.5 bg-amber-50 border border-amber-200 text-amber-800 rounded flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                    <span>Triggered Policy: Detect High Blast Radius Traversal (&gt;3 Hops)</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 7 Visual */}
+              {activeWalkthroughStep === 7 && (
+                <div className="flex flex-col gap-2 text-xs">
+                  <div className="p-2.5 bg-white border border-gray-200 rounded flex items-center gap-2">
+                    <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span className="font-semibold text-slate-900">Apply Expand/Contract dual-write schema migration</span>
+                  </div>
+                  <div className="p-2.5 bg-white border border-gray-200 rounded flex items-center gap-2">
+                    <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span className="font-semibold text-slate-900">Sync downstream user-service and order-service ORMs</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Technical Detail Callout */}
+            <div className="p-3 bg-slate-950 text-slate-200 rounded-lg text-xs font-mono border border-slate-800 flex items-start gap-2.5">
+              <Cpu className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
+              <div>
+                <span className="font-semibold text-white font-sans">Engine Internal Action:</span>{' '}
+                <span className="text-slate-300">{currentWalkthroughData.engineDetail}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Scope KPI Metric Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white border border-gray-200 rounded-lg p-5 flex flex-col justify-between shadow-2xs">
@@ -407,7 +692,7 @@ export default function SystemsPage() {
             <span className="text-3xl font-semibold text-slate-900 tracking-tight">
               {totalScope.databases} DBs
             </span>
-            <span className="text-xs text-gray-500">Relational & Lake</span>
+            <span className="text-xs text-gray-500">Relational &amp; Lake</span>
           </div>
         </div>
       </div>
@@ -476,7 +761,7 @@ export default function SystemsPage() {
                   <span>SHA: {sys.lastCommitSha}</span>
                   <span>Branch: {sys.branch}</span>
                 </div>
-                <p className="text-slate-800 font-medium truncate">"{sys.lastCommitMessage}"</p>
+                <p className="text-slate-800 font-medium truncate">&quot;{sys.lastCommitMessage}&quot;</p>
               </div>
             )}
 
@@ -583,14 +868,14 @@ export default function SystemsPage() {
               {selectedSourceType === 'sql' && (
                 <FileUpload
                   acceptedExtensions={['.sql']}
-                  onFileSelected={(file) => setUploadedFile(file)}
+                  onFileSelected={(file: File | null) => setUploadedFile(file)}
                 />
               )}
 
               {selectedSourceType === 'openapi' && (
                 <FileUpload
                   acceptedExtensions={['.json', '.yaml', '.yml']}
-                  onFileSelected={(file) => setUploadedFile(file)}
+                  onFileSelected={(file: File | null) => setUploadedFile(file)}
                 />
               )}
 
