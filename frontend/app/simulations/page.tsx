@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import {
   Play,
@@ -9,21 +9,16 @@ import {
   Search,
   Filter,
   AlertTriangle,
-  CheckCircle2,
   Database,
   GitFork,
   ArrowLeftRight,
   Copy,
   Trash2,
   X,
-  ChevronRight,
   Sparkles,
   Layers,
-  Ban,
   Clock,
   ArrowUpDown,
-  FileText,
-  ShieldAlert,
 } from 'lucide-react';
 import { simulateChange } from '@/lib/api';
 
@@ -220,14 +215,11 @@ export default function SimulationsPage() {
   };
 
   const handleDuplicateSimulation = (sim: SimulationRecord) => {
-    const duplicated: SimulationRecord = {
-      ...sim,
-      id: `sim-${Date.now().toString().slice(-4)}`,
-      name: `${sim.name} (Re-run)`,
-      timestamp: 'Just now',
-    };
-    setSimulations((prev) => [duplicated, ...prev]);
-    triggerToast(`Duplicated and re-ran "${sim.name}".`);
+    setQuickTarget(sim.targetComponent.split(' / ')[0] || 'db-users');
+    setQuickV1Sql(sim.v1Sql || 'CREATE TABLE users (id INT PRIMARY KEY);');
+    setQuickV2Sql(sim.v2Sql || sim.changeSummary);
+    setShowSetup(true);
+    triggerToast(`Loaded parameters for "${sim.name}" into Quick Runner.`);
   };
 
   const handleDeleteSimulation = (id: string, name: string) => {
@@ -352,16 +344,15 @@ export default function SimulationsPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
-          {selectedCompareIds.length === 2 && (
-            <button
-              type="button"
-              onClick={() => setIsCompareModalOpen(true)}
-              className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-md text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs animate-pulse"
-            >
-              <ArrowLeftRight className="w-3.5 h-3.5" />
-              <span>Compare Selected (2/2)</span>
-            </button>
-          )}
+          <button
+            type="button"
+            disabled={selectedCompareIds.length !== 2}
+            onClick={() => setIsCompareModalOpen(true)}
+            className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-md text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs"
+          >
+            <ArrowLeftRight className="w-3.5 h-3.5" />
+            <span>Compare Selected ({selectedCompareIds.length}/2)</span>
+          </button>
 
           <button
             type="button"

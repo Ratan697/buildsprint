@@ -1,18 +1,16 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   Activity,
   ShieldAlert,
   ShieldCheck,
   Plus,
-  ArrowUpRight,
   Play,
   Server,
   Database,
   GitFork,
-  AlertTriangle,
   CheckCircle2,
   TrendingUp,
   Sparkles,
@@ -20,9 +18,14 @@ import {
   ChevronRight,
   Layers,
   Flame,
-  Ban,
   Globe,
+  RefreshCw,
+  X,
+  FileText,
+  AlertTriangle,
+  ArrowRight,
 } from 'lucide-react';
+import { checkBackendHealth } from '@/lib/api';
 
 export type RiskLevel = 'Critical' | 'High' | 'Medium' | 'Low';
 export type SimulationStatus = 'Passed' | 'Blocked' | 'Needs Review';
@@ -32,10 +35,14 @@ export interface CommandSimulationItem {
   name: string;
   targetService: string;
   changeSummary: string;
+  v1Sql?: string;
+  v2Sql?: string;
   riskLevel: RiskLevel;
+  riskScore: number;
   status: SimulationStatus;
   executedTimestamp: string;
   affectedCount: number;
+  affectedNodesList?: string[];
 }
 
 export interface ImpactedServiceItem {
@@ -53,50 +60,70 @@ const RECENT_SIMULATIONS_DATA: CommandSimulationItem[] = [
     name: 'Migrate User Identifier to UUID',
     targetService: 'users-db / user-service',
     changeSummary: 'ALTER TABLE users ALTER COLUMN customer_id TYPE UUID;',
+    v1Sql: 'CREATE TABLE users (customer_id INT PRIMARY KEY, email VARCHAR(255));',
+    v2Sql: 'ALTER TABLE users ALTER COLUMN customer_id TYPE UUID;',
     riskLevel: 'Critical',
+    riskScore: 8.6,
     status: 'Blocked',
     executedTimestamp: '12 mins ago',
     affectedCount: 5,
+    affectedNodesList: ['user-service', 'auth-service', 'order-service', 'checkout-api', 'analytics-pipeline'],
   },
   {
     id: 'sim-8794',
     name: 'Add Payment Idempotency Column',
     targetService: 'payment-service',
     changeSummary: 'ALTER TABLE payments ADD COLUMN idempotency_key VARCHAR(64);',
+    v1Sql: 'CREATE TABLE payments (id UUID PRIMARY KEY, amount DECIMAL(10,2));',
+    v2Sql: 'ALTER TABLE payments ADD COLUMN idempotency_key VARCHAR(64);',
     riskLevel: 'Medium',
+    riskScore: 3.2,
     status: 'Passed',
     executedTimestamp: '1 hour ago',
     affectedCount: 2,
+    affectedNodesList: ['payment-service', 'stripe-webhook-gateway'],
   },
   {
     id: 'sim-8781',
     name: 'Drop Order Foreign Key Constraint',
     targetService: 'order-service',
     changeSummary: 'ALTER TABLE order_items DROP CONSTRAINT fk_orders_user;',
+    v1Sql: 'ALTER TABLE order_items ADD CONSTRAINT fk_orders_user FOREIGN KEY (user_id) REFERENCES users(id);',
+    v2Sql: 'ALTER TABLE order_items DROP CONSTRAINT fk_orders_user;',
     riskLevel: 'High',
+    riskScore: 6.8,
     status: 'Needs Review',
     executedTimestamp: '3 hours ago',
     affectedCount: 4,
+    affectedNodesList: ['order-service', 'inventory-service', 'notification-service', 'db-orders'],
   },
   {
     id: 'sim-8762',
     name: 'Create Product Category Index',
     targetService: 'catalog-service',
     changeSummary: 'CREATE INDEX idx_products_category ON products(category_id);',
+    v1Sql: '-- No index on category_id',
+    v2Sql: 'CREATE INDEX idx_products_category ON products(category_id);',
     riskLevel: 'Low',
+    riskScore: 1.4,
     status: 'Passed',
     executedTimestamp: '5 hours ago',
     affectedCount: 1,
+    affectedNodesList: ['catalog-service'],
   },
   {
     id: 'sim-8740',
     name: 'Deprecate Legacy Events Table',
     targetService: 'analytics-pipeline',
     changeSummary: 'DROP TABLE legacy_user_events_2024;',
+    v1Sql: 'CREATE TABLE legacy_user_events_2024 (id UUID PRIMARY KEY);',
+    v2Sql: 'DROP TABLE legacy_user_events_2024;',
     riskLevel: 'Critical',
+    riskScore: 9.1,
     status: 'Blocked',
     executedTimestamp: '1 day ago',
     affectedCount: 6,
+    affectedNodesList: ['bi-dashboard', 'etl-exporter', 'user-behavior-service', 'data-lake-sync', 'warehouse-loader', 'reporting-api'],
   },
 ];
 
@@ -137,14 +164,35 @@ const HIGH_RISK_SERVICES_DATA: ImpactedServiceItem[] = [
 
 export default function OverviewPage() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [isHealthChecking, setIsHealthChecking] = useState(false);
+  const [backendStatus, setBackendStatus] = useState<'Online' | 'Offline' | 'Checking'>('Checking');
+
+  // Slide-Over Detail Drawer State
+  const [inspectItem, setInspectItem] = useState<CommandSimulationItem | null>(null);
 
   const triggerToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3000);
   };
 
-  const handleInstantAnalysis = () => {
-    triggerToast('Triggered instant system graph topology scan & risk check.');
+  const handleRefreshArchitecture = async () => {
+    setIsHealthChecking(true);
+    const isOnline = await checkBackendHealth();
+    setIsHealthChecking(false);
+    setBackendStatus(isOnline ? 'Online' : 'Offline');
+    triggerToast(
+      isOnline
+        ? 'Refreshed architecture. FastAPI engine http://localhost:8000 is 100% Operational.'
+        : 'Refreshed architecture. Reached local cache mode.'
+    );
+  };
+
+  useEffect(() => {
+    handleRefreshArchitecture();
+  }, []);
+
+  const handleQuickLatestAnalysis = () => {
+    setInspectItem(RECENT_SIMULATIONS_DATA[0]);
   };
 
   const getRiskBadgeStyle = (level: RiskLevel) => {
@@ -190,10 +238,24 @@ export default function OverviewPage() {
             <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">
               Command Center
             </h1>
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-700 text-xs font-medium rounded-full border border-emerald-200">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              All Systems Protected • 100% Operational
-            </span>
+            {backendStatus === 'Online' && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-700 text-xs font-medium rounded-full border border-emerald-200">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                All Systems Protected • 100% Operational
+              </span>
+            )}
+            {backendStatus === 'Offline' && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 text-amber-700 text-xs font-medium rounded-full border border-amber-200">
+                <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
+                Backend Cache Mode Active
+              </span>
+            )}
+            {backendStatus === 'Checking' && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-indigo-50 text-indigo-700 text-xs font-medium rounded-full border border-indigo-200 animate-pulse">
+                <RefreshCw className="w-3 h-3 animate-spin text-indigo-600" />
+                Verifying Engine...
+              </span>
+            )}
           </div>
           <p className="text-sm text-gray-500 mt-1">
             Predict schema impact, trace dependency blast radius, and enforce architectural risk governance.
@@ -204,15 +266,25 @@ export default function OverviewPage() {
         <div className="flex items-center gap-2.5 shrink-0">
           <button
             type="button"
-            onClick={handleInstantAnalysis}
+            onClick={handleRefreshArchitecture}
+            disabled={isHealthChecking}
+            className="px-3.5 py-2 bg-white border border-gray-300 hover:bg-gray-50 text-slate-900 rounded-md text-xs font-medium transition-colors flex items-center gap-2 cursor-pointer shadow-2xs focus:outline-none focus:ring-2 focus:ring-slate-900 disabled:opacity-50"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 text-gray-500 ${isHealthChecking ? 'animate-spin' : ''}`} />
+            <span>Refresh Architecture</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleQuickLatestAnalysis}
             className="px-3.5 py-2 bg-white border border-gray-300 hover:bg-gray-50 text-slate-900 rounded-md text-xs font-medium transition-colors flex items-center gap-2 cursor-pointer shadow-2xs focus:outline-none focus:ring-2 focus:ring-slate-900"
           >
             <Play className="w-3.5 h-3.5 fill-slate-900 text-slate-900" />
-            <span>Instant Analysis</span>
+            <span>Quick Latest Analysis</span>
           </button>
 
           <Link
-            href="/simulations/new"
+            href="/simulations?openRunner=true"
             className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-md text-xs font-medium transition-colors flex items-center gap-2 shadow-2xs focus:outline-none focus:ring-2 focus:ring-slate-900"
           >
             <Plus className="w-4 h-4" />
@@ -330,12 +402,17 @@ export default function OverviewPage() {
                     <th className="pb-3 px-3">Schema Change Summary</th>
                     <th className="pb-3 px-3">Risk Rating</th>
                     <th className="pb-3 px-3">Status</th>
+                    <th className="pb-3 px-2 text-center">Action</th>
                     <th className="pb-3 pr-1 text-right">Executed</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 text-sm">
                   {RECENT_SIMULATIONS_DATA.map((sim) => (
-                    <tr key={sim.id} className="hover:bg-gray-50/50 transition-colors">
+                    <tr
+                      key={sim.id}
+                      onClick={() => setInspectItem(sim)}
+                      className="hover:bg-gray-50/80 transition-colors cursor-pointer"
+                    >
                       <td className="py-3.5 pl-1">
                         <div className="flex flex-col gap-0.5">
                           <span className="font-semibold text-slate-900 text-xs">{sim.name}</span>
@@ -367,6 +444,19 @@ export default function OverviewPage() {
                         >
                           {sim.status}
                         </span>
+                      </td>
+
+                      <td className="py-3.5 px-2 text-center">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setInspectItem(sim);
+                          }}
+                          className="px-2.5 py-1 bg-white border border-gray-300 hover:bg-gray-50 text-slate-900 text-[11px] font-medium rounded transition-colors"
+                        >
+                          Inspect
+                        </button>
                       </td>
 
                       <td className="py-3.5 pr-1 text-right text-xs text-gray-500">
@@ -444,7 +534,6 @@ export default function OverviewPage() {
                   fill="none"
                   d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                 />
-                {/* Critical (1/13 = ~7.7%) */}
                 <path
                   className="text-rose-500"
                   strokeDasharray="7.7, 100"
@@ -455,7 +544,6 @@ export default function OverviewPage() {
                   fill="none"
                   d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                 />
-                {/* High (3/13 = ~23%) */}
                 <path
                   className="text-amber-500"
                   strokeDasharray="23, 100"
@@ -466,7 +554,6 @@ export default function OverviewPage() {
                   fill="none"
                   d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                 />
-                {/* Medium (5/13 = ~38.5%) */}
                 <path
                   className="text-blue-500"
                   strokeDasharray="38.5, 100"
@@ -477,7 +564,6 @@ export default function OverviewPage() {
                   fill="none"
                   d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                 />
-                {/* Low (4/13 = ~30.8%) */}
                 <path
                   className="text-emerald-500"
                   strokeDasharray="30.8, 100"
@@ -652,6 +738,69 @@ export default function OverviewPage() {
           </div>
         </div>
       </div>
+
+      {/* Slide-Over Inspection Drawer */}
+      {inspectItem && (
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-end p-0 sm:p-4">
+          <div className="bg-white border-l border-gray-200 sm:border sm:rounded-xl shadow-2xl max-w-lg w-full h-full sm:h-auto sm:max-h-[90vh] overflow-y-auto p-6 flex flex-col gap-6 animate-in slide-in-from-right duration-200">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+              <div>
+                <span className="text-[10px] font-mono text-gray-400">Simulation ID: {inspectItem.id}</span>
+                <h3 className="text-base font-bold text-slate-900">{inspectItem.name}</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setInspectItem(null)}
+                className="p-1 text-gray-400 hover:text-slate-900 rounded cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 text-xs p-3 bg-gray-50 rounded border border-gray-200">
+              <div>
+                <span className="text-gray-500">Target Component:</span>
+                <p className="font-semibold text-slate-900 font-mono">{inspectItem.targetService}</p>
+              </div>
+              <div>
+                <span className="text-gray-500">Risk Score:</span>
+                <p className="font-semibold text-rose-600 font-mono">{inspectItem.riskScore || 8.6} / 10.0 ({inspectItem.riskLevel})</p>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2 text-xs font-mono">
+              <span className="font-semibold text-slate-900 font-sans">DDL Statement</span>
+              <div className="p-3 bg-slate-950 text-emerald-300 rounded border border-slate-800 overflow-x-auto">
+                {inspectItem.v2Sql || inspectItem.changeSummary}
+              </div>
+            </div>
+
+            {inspectItem.affectedNodesList && inspectItem.affectedNodesList.length > 0 && (
+              <div className="flex flex-col gap-2 text-xs">
+                <span className="font-semibold text-slate-900">Blast Radius Path ({inspectItem.affectedCount} Nodes)</span>
+                <div className="flex flex-wrap gap-1.5 font-mono">
+                  {inspectItem.affectedNodesList.map((node, idx) => (
+                    <span key={idx} className="px-2.5 py-1 bg-gray-100 text-slate-800 rounded border border-gray-200 flex items-center gap-1">
+                      {node}
+                      {idx < inspectItem.affectedNodesList!.length - 1 && <ArrowRight className="w-3 h-3 text-gray-400 ml-1" />}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="pt-3 border-t border-gray-100 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setInspectItem(null)}
+                className="px-4 py-2 bg-slate-900 text-white rounded text-xs font-medium cursor-pointer"
+              >
+                Close Drawer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
