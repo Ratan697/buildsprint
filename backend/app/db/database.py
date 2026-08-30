@@ -1,7 +1,7 @@
 """
 backend/app/db/database.py
 
-SQLite database initialization and SessionLocal dependency for ChangeShield backend.
+SQLAlchemy setup with SQLite pooling and session generator.
 """
 
 from typing import Generator
@@ -29,4 +29,3 @@ def get_db() -> Generator[Session, None, None]:
         yield db
     finally:
         db.close()
-
